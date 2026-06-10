@@ -52,6 +52,14 @@
     <button class="btn topic-btn active" data-topic="palabras">PALABRAS – ALL VOC</button>
   </div>
 
+  <p style="color:#aaa; font-size:0.85rem; margin-bottom:0.6rem; letter-spacing:1px;">SELECT DIFFICULTY:</p>
+  <div style="display:flex; gap:0.6rem; margin-bottom:1.5rem;">
+    <button class="btn diff-btn active" data-diff="beginner" style="border-color:#6bcb77; color:#6bcb77;">🟢 BEGINNER</button>
+    <button class="btn diff-btn" data-diff="intermediate" style="border-color:#ffd93d; color:#ffd93d;">🟡 INTERMEDIATE</button>
+    <button class="btn diff-btn" data-diff="expert" style="border-color:#ff6b6b; color:#ff6b6b;">🔴 EXPERT</button>
+  </div>
+  <div id="diff-desc" style="font-size:0.78rem; color:#aaa; margin-bottom:1rem; text-align:center; letter-spacing:1px; min-height:1.2em;"></div>
+
   <div id="score-history"></div>
   <button class="btn" id="start-btn" style="font-size:1.2rem; padding:0.9rem 3rem;">▶ START GAME</button>
   <p style="color:#555; font-size:0.75rem; margin-top:1rem;">← → to move &nbsp;|&nbsp; SPACE to fire</p>
@@ -63,6 +71,7 @@
   <div id="new-hs">⭐ NEW HIGH SCORE! ⭐</div>
   <div id="final-score"></div>
   <div id="final-level"></div>
+  <div id="final-diff" style="font-size:0.9rem; color:#aaa; margin-bottom:0.5rem; letter-spacing:1px;"></div>
   <div id="score-history-go" style="font-size:0.8rem;color:#7affdf;margin-bottom:1.5rem;text-align:center;line-height:1.8;"></div>
   <button class="btn" id="play-again-btn">↩ PLAY AGAIN</button>
   <button class="btn" id="menu-btn">☰ MENU</button>
@@ -259,9 +268,55 @@ let state = 'menu';
 let score, lives, level, combo;
 let aliens = [], bullets = [], particles = [];
 let ship;
-let currentQ, activeTopics, pool;
-let highScore = parseInt(localStorage.getItem('hs_viva2mod2') || '0');
-let scoreHistory = JSON.parse(localStorage.getItem('sh_viva2mod2') || '[]');
+let currentQ, pool;
+let selectedDiff = 'beginner';
+
+// Per-difficulty high scores and history
+const HS_KEY  = d => `hs_viva2mod2_${d}`;
+const SH_KEY  = d => `sh_viva2mod2_${d}`;
+let highScore    = parseInt(localStorage.getItem(HS_KEY(selectedDiff)) || '0');
+let scoreHistory = JSON.parse(localStorage.getItem(SH_KEY(selectedDiff)) || '[]');
+
+// ─── DIFFICULTY CONFIG ───────────────────────────────────────────────────────────
+const DIFF = {
+  beginner: {
+    label: '🟢 BEGINNER',
+    desc:  '3 distractors · slow speed · 5 lives · EN → ES only',
+    color: '#6bcb77',
+    lives: 5,
+    baseSpd: 0.35,
+    spdPerLevel: 0.12,
+    distractors: 3,         // always 3 wrong answers
+    esPromptOnly: false,    // English prompt → shoot Spanish answer
+    enPromptOnly: true,     // always EN → ES (easier reading direction)
+    levelThresh: 100,
+  },
+  intermediate: {
+    label: '🟡 INTERMEDIATE',
+    desc:  '4 distractors · medium speed · 3 lives · mixed directions',
+    color: '#ffd93d',
+    lives: 3,
+    baseSpd: 0.55,
+    spdPerLevel: 0.18,
+    distractors: 4,
+    esPromptOnly: false,
+    enPromptOnly: false,    // random direction
+    levelThresh: 80,
+  },
+  expert: {
+    label: '🔴 EXPERT',
+    desc:  '5 distractors · fast speed · 2 lives · ES → EN only · similar distractors',
+    color: '#ff6b6b',
+    lives: 2,
+    baseSpd: 0.85,
+    spdPerLevel: 0.25,
+    distractors: 5,
+    esPromptOnly: true,     // Spanish prompt → shoot English answer (harder)
+    enPromptOnly: false,
+    levelThresh: 60,
+    similarDistractors: true,
+  },
+};
 
 // Input
 const keys = {};
@@ -270,6 +325,29 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Space') { e.preventDefault(); fireBullet(); }
 });
 window.addEventListener('keyup', e => keys[e.code] = false);
+
+// ─── DIFFICULTY TOGGLES ─────────────────────────────────────────────────────────
+const diffButtons = document.querySelectorAll('.diff-btn');
+const DIFF_DESCS = {
+  beginner:     '3 distractors · slow · 5 lives · English prompt → shoot Spanish',
+  intermediate: '4 distractors · medium · 3 lives · mixed directions',
+  expert:       '5 distractors · fast · 2 lives · Spanish prompt → shoot English',
+};
+function updateDiffDesc() {
+  document.getElementById('diff-desc').textContent = DIFF_DESCS[selectedDiff];
+}
+diffButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    diffButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedDiff = btn.dataset.diff;
+    highScore    = parseInt(localStorage.getItem(HS_KEY(selectedDiff)) || '0');
+    scoreHistory = JSON.parse(localStorage.getItem(SH_KEY(selectedDiff)) || '[]');
+    document.getElementById('highscore-display').textContent = `🏆 HIGH SCORE: ${highScore}`;
+    renderHistory('score-history');
+    updateDiffDesc();
+  });
+});
 
 // ─── TOPIC TOGGLES ──────────────────────────────────────────────────────────────
 const topicButtons = document.querySelectorAll('.topic-btn');
@@ -298,22 +376,35 @@ function buildPool() {
 function newQuestion() {
   if (!pool.length) buildPool();
   const item = pool.splice(0,1)[0];
-  const esFirst = Math.random() < 0.5;
+  const cfg = DIFF[selectedDiff];
+  let esFirst;
+  if (cfg.enPromptOnly)   esFirst = false;  // EN prompt → ES answer
+  else if (cfg.esPromptOnly) esFirst = true; // ES prompt → EN answer
+  else esFirst = Math.random() < 0.5;
   currentQ = {
-    prompt: esFirst ? item.en : item.es,
-    answer: esFirst ? item.es : item.en,
-    isEsPrompt: !esFirst
+    prompt: esFirst ? item.es : item.en,
+    answer: esFirst ? item.en : item.es,
+    isEsPrompt: esFirst
   };
   return currentQ;
 }
 
 function getWrongAnswers(correct, count) {
+  const cfg = DIFF[selectedDiff];
   const all = [];
   selectedTopics.forEach(t => all.push(...vocab[t]));
-  const esFirst = !currentQ.isEsPrompt;
-  const candidates = all.map(v => esFirst ? v.es : v.en).filter(v => v !== correct);
-  const shuffled = candidates.sort(() => Math.random()-0.5);
-  return shuffled.slice(0, count);
+  const wantEs = currentQ.isEsPrompt;  // prompt is ES → answers are EN
+  const candidates = all.map(v => wantEs ? v.en : v.es).filter(v => v !== correct);
+
+  if (cfg.similarDistractors) {
+    // Expert: prefer distractors of similar length (±40%) to make it harder
+    const cLen = correct.length;
+    const similar = candidates.filter(v => Math.abs(v.length - cLen) / cLen < 0.4);
+    const rest    = candidates.filter(v => Math.abs(v.length - cLen) / cLen >= 0.4);
+    const pool2   = [...similar.sort(() => Math.random()-0.5), ...rest.sort(() => Math.random()-0.5)];
+    return pool2.slice(0, count);
+  }
+  return candidates.sort(() => Math.random()-0.5).slice(0, count);
 }
 
 // ─── SHIP ───────────────────────────────────────────────────────────────────────
@@ -330,7 +421,6 @@ function fireBullet() {
 const ALIEN_COLORS = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff','#ff9f1c'];
 const ALIEN_EMOJIS = ['👾','🛸','🤖','👽','🔮','💀'];
 
-// Measure text to size the alien capsule dynamically
 function measureLabel(label) {
   ctx.font = 'bold 14px Courier New';
   const lines = wrapLabel(label, 160);
@@ -358,14 +448,16 @@ function wrapLabel(label, maxPx) {
 }
 
 function spawnAlienWave() {
+  const cfg = DIFF[selectedDiff];
   const q = newQuestion();
-  const wrongAnswers = getWrongAnswers(q.answer, Math.min(3 + Math.floor(level/3), 5));
+  const maxDistractors = Math.min(cfg.distractors + Math.floor(level/4), cfg.distractors);
+  const wrongAnswers = getWrongAnswers(q.answer, maxDistractors);
   const allAnswers = [q.answer, ...wrongAnswers].sort(() => Math.random()-0.5);
 
   const count = allAnswers.length;
   const spacing = W / (count + 1);
   const startY = -70;
-  const spd = 0.5 + level * 0.18;
+  const spd = cfg.baseSpd + level * cfg.spdPerLevel;
 
   allAnswers.forEach((ans, i) => {
     const dims = measureLabel(ans);
@@ -531,6 +623,12 @@ function drawHUD() {
     ctx.textAlign = 'left';
     ctx.fillText(`🔥 COMBO x${combo}`, 12, 48);
   }
+
+  // Difficulty badge bottom-left
+  ctx.fillStyle = DIFF[selectedDiff].color;
+  ctx.font = 'bold 11px Courier New';
+  ctx.textAlign = 'left';
+  ctx.fillText(DIFF[selectedDiff].label, 12, H - 18);
 }
 
 // ─── UPDATE ─────────────────────────────────────────────────────────────────────
@@ -587,7 +685,7 @@ function update(dt) {
   });
   aliens = aliens.filter(a => !a.hit);
 
-  const nextLevel = Math.floor(score / 80) + 1;
+  const nextLevel = Math.floor(score / DIFF[selectedDiff].levelThresh) + 1;
   if (nextLevel > level) { level = nextLevel; }
 
   particles.forEach(p => {
@@ -629,7 +727,8 @@ requestAnimationFrame(loop);
 
 // ─── GAME CONTROL ───────────────────────────────────────────────────────────────
 function startGame() {
-  score = 0; lives = 3; level = 1; combo = 0;
+  const cfg = DIFF[selectedDiff];
+  score = 0; lives = cfg.lives; level = 1; combo = 0;
   aliens = []; bullets = []; particles = [];
   buildPool();
   initShip();
@@ -641,15 +740,18 @@ function startGame() {
 
 function endGame() {
   state = 'gameover';
+  highScore    = parseInt(localStorage.getItem(HS_KEY(selectedDiff)) || '0');
+  scoreHistory = JSON.parse(localStorage.getItem(SH_KEY(selectedDiff)) || '[]');
   const isNewHS = score > highScore;
-  if (isNewHS) { highScore = score; localStorage.setItem('hs_viva2mod2', highScore); }
+  if (isNewHS) { highScore = score; localStorage.setItem(HS_KEY(selectedDiff), highScore); }
 
   scoreHistory.unshift({ score, level, date: new Date().toLocaleDateString('en-AU') });
   if (scoreHistory.length > 8) scoreHistory = scoreHistory.slice(0,8);
-  localStorage.setItem('sh_viva2mod2', JSON.stringify(scoreHistory));
+  localStorage.setItem(SH_KEY(selectedDiff), JSON.stringify(scoreHistory));
 
   document.getElementById('final-score').textContent = `SCORE: ${score}`;
   document.getElementById('final-level').textContent = `Reached Level ${level}`;
+  document.getElementById('final-diff').textContent  = DIFF[selectedDiff].label;
   document.getElementById('new-hs').style.display = isNewHS ? 'block' : 'none';
   renderHistory('score-history-go');
   document.getElementById('gameover-screen').classList.remove('hidden');
@@ -664,8 +766,11 @@ function renderHistory(id) {
 
 function showMenu() {
   state = 'menu';
+  highScore    = parseInt(localStorage.getItem(HS_KEY(selectedDiff)) || '0');
+  scoreHistory = JSON.parse(localStorage.getItem(SH_KEY(selectedDiff)) || '[]');
   document.getElementById('highscore-display').textContent = `🏆 HIGH SCORE: ${highScore}`;
   renderHistory('score-history');
+  updateDiffDesc();
   document.getElementById('menu-screen').classList.remove('hidden');
   document.getElementById('gameover-screen').classList.add('hidden');
 }
