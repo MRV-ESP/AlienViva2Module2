@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alien Español – Viva 2 Mod 2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a1a; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; user-select: none; }
+  #canvas { display: block; margin: 0 auto; background: #0a0a1a; cursor: none; }
+
+  /* SCREENS */
+  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a1a; z-index: 10; }
+  .screen.hidden { display: none; }
+
+  h1 { font-size: 2.8rem; color: #00ffcc; text-shadow: 0 0 20px #00ffcc; letter-spacing: 4px; margin-bottom: 0.3rem; }
+  h2 { font-size: 1.2rem; color: #7affdf; letter-spacing: 2px; margin-bottom: 2rem; }
+
+  .btn { background: transparent; border: 2px solid #00ffcc; color: #00ffcc; font-family: 'Courier New', monospace; font-size: 1rem; padding: 0.7rem 2rem; margin: 0.4rem; cursor: pointer; letter-spacing: 2px; transition: all 0.2s; }
+  .btn:hover { background: #00ffcc; color: #0a0a1a; box-shadow: 0 0 15px #00ffcc; }
+  .btn.active { background: #00ffcc; color: #0a0a1a; }
+
+  .topic-grid { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1.5rem; max-width: 700px; }
+  .topic-btn { font-size: 0.82rem; padding: 0.5rem 1rem; }
+
+  #highscore-display { color: #ffd700; font-size: 1rem; margin-bottom: 1rem; letter-spacing: 1px; }
+  #score-history { font-size: 0.8rem; color: #7affdf; margin-bottom: 1.5rem; text-align: center; line-height: 1.8; }
+
+  #final-score { font-size: 2rem; color: #ffd700; margin: 0.5rem 0; }
+  #final-level { font-size: 1rem; color: #7affdf; margin-bottom: 1.5rem; }
+  #new-hs { color: #ffd700; font-size: 1.1rem; letter-spacing: 2px; margin-bottom: 0.5rem; display: none; }
+
+  #flash { position: fixed; inset: 0; pointer-events: none; z-index: 20; opacity: 0; transition: opacity 0.1s; }
+</style>
+</head>
+<body>
+
+<!-- MENU -->
+<div id="menu-screen" class="screen">
+  <h1>👾 ALIEN ESPAÑOL</h1>
+  <h2>VIVA 2 — MÓDULO 2</h2>
+
+  <div id="highscore-display">🏆 HIGH SCORE: 0</div>
+
+  <p style="color:#aaa; font-size:0.85rem; margin-bottom:0.8rem; letter-spacing:1px;">SELECT TOPICS:</p>
+  <div class="topic-grid">
+    <button class="btn topic-btn active" data-topic="mod21">2.1 – MY PHONE</button>
+    <button class="btn topic-btn active" data-topic="mod22">2.2 – MUSIC</button>
+    <button class="btn topic-btn active" data-topic="mod23">2.3 – TV SHOWS</button>
+    <button class="btn topic-btn active" data-topic="mod24">2.4 – PRETERITE</button>
+    <button class="btn topic-btn active" data-topic="mod25">2.5 – TV GUIDE</button>
+    <button class="btn topic-btn active" data-topic="palabras">PALABRAS – ALL VOC</button>
+  </div>
+
+  <div id="score-history"></div>
+  <button class="btn" id="start-btn" style="font-size:1.2rem; padding:0.9rem 3rem;">▶ START GAME</button>
+  <p style="color:#555; font-size:0.75rem; margin-top:1rem;">← → to move &nbsp;|&nbsp; SPACE to fire</p>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameover-screen" class="screen hidden">
+  <h1 style="color:#ff4466;">GAME OVER</h1>
+  <div id="new-hs">⭐ NEW HIGH SCORE! ⭐</div>
+  <div id="final-score"></div>
+  <div id="final-level"></div>
+  <div id="score-history-go" style="font-size:0.8rem;color:#7affdf;margin-bottom:1.5rem;text-align:center;line-height:1.8;"></div>
+  <button class="btn" id="play-again-btn">↩ PLAY AGAIN</button>
+  <button class="btn" id="menu-btn">☰ MENU</button>
+</div>
+
+<!-- FLASH OVERLAY -->
+<div id="flash"></div>
+<canvas id="canvas"></canvas>
+
+<script>
+// ─── VOCAB DATA ────────────────────────────────────────────────────────────────
+const vocab = {
+
+  mod21: [
+    // What do you do with your phone?
+    {es:"Chateo con mis amigos",en:"I chat with my friends online"},
+    {es:"Comparto mis vídeos favoritos",en:"I share my favourite videos"},
+    {es:"Descargo melodías o aplicaciones",en:"I download ringtones or apps"},
+    {es:"Hablo por Skype",en:"I talk on Skype"},
+    {es:"Leo mis SMS",en:"I read my texts"},
+    {es:"Mando SMS",en:"I send texts"},
+    {es:"Saco fotos",en:"I take photos"},
+    {es:"Veo vídeos o películas",en:"I watch videos or films"},
+    // Frequency
+    {es:"todos los días",en:"every day"},
+    {es:"dos o tres veces a la semana",en:"two or three times a week"},
+    {es:"a veces",en:"sometimes"},
+    {es:"de vez en cuando",en:"from time to time"},
+    // Present tense reference
+    {es:"hablo",en:"I talk / I speak"},
+    {es:"leo",en:"I read"},
+    {es:"comparto",en:"I share"},
+    {es:"juego",en:"I play"},
+    {es:"descargo",en:"I download"},
+  ],
+
+  mod22: [
+    // Types of music
+    {es:"el rap",en:"rap"},
+    {es:"el R'n'B",en:"R'n'B"},
+    {es:"el rock",en:"rock"},
+    {es:"la música clásica",en:"classical music"},
+    {es:"la música electrónica",en:"electronic music"},
+    {es:"la música pop",en:"pop music"},
+    // Opinions on music
+    {es:"Me gusta (mucho)",en:"I like (very much)"},
+    {es:"Me encanta",en:"I love"},
+    {es:"No me gusta (nada)",en:"I don't like (at all)"},
+    {es:"la letra",en:"the lyrics"},
+    {es:"la melodía",en:"the tune"},
+    {es:"el ritmo",en:"the rhythm"},
+    {es:"mi canción favorita",en:"my favourite song"},
+    {es:"mi cantante favorito/a",en:"my favourite singer"},
+    {es:"En mi opinión",en:"In my opinion"},
+    {es:"¿Qué tipo de música escuchas?",en:"What type of music do you listen to?"},
+    {es:"Escucho rap",en:"I listen to rap"},
+    {es:"Escucho de todo",en:"I listen to everything"},
+    {es:"porque es guay",en:"because it is cool"},
+    {es:"porque es triste",en:"because it is sad"},
+    {es:"porque es horrible",en:"because it is terrible"},
+  ],
+
+  mod23: [
+    // TV programme types
+    {es:"un programa de deportes",en:"a sports programme"},
+    {es:"una comedia",en:"a comedy"},
+    {es:"un concurso",en:"a game show"},
+    {es:"un documental",en:"a documentary"},
+    {es:"un reality",en:"a reality show"},
+    {es:"una serie policiaca",en:"a police series"},
+    {es:"una telenovela",en:"a soap opera"},
+    {es:"el telediario",en:"the news"},
+    // Opinions + comparisons
+    {es:"divertido/a",en:"funny"},
+    {es:"informativo/a",en:"informative"},
+    {es:"interesante",en:"interesting"},
+    {es:"aburrido/a",en:"boring"},
+    {es:"emocionante",en:"exciting"},
+    {es:"Prefiero las comedias",en:"I prefer comedies"},
+    {es:"porque son más divertidas",en:"because they are funnier"},
+    // Stem-changing verb preferir
+    {es:"prefiero",en:"I prefer"},
+    {es:"prefieres",en:"you prefer"},
+    {es:"prefiere",en:"he/she prefers"},
+    {es:"prefieren",en:"they prefer"},
+    // Useful phrases
+    {es:"Me gustan los concursos",en:"I like game shows"},
+    {es:"No me gustan nada los realitys",en:"I don't like reality shows at all"},
+    {es:"En mi opinión, es aburrido",en:"In my opinion, it is boring"},
+  ],
+
+  mod24: [
+    // ¿Qué hiciste ayer? – preterite actions
+    {es:"Bailé en mi cuarto",en:"I danced in my room"},
+    {es:"Fui al cine",en:"I went to the cinema"},
+    {es:"Hablé por Skype",en:"I talked on Skype"},
+    {es:"Hice gimnasia",en:"I did gymnastics"},
+    {es:"Hice kárate",en:"I did karate"},
+    {es:"Jugué en línea con mis amigos",en:"I played online with my friends"},
+    {es:"Jugué tres horas",en:"I played for three hours"},
+    {es:"Monté en bici",en:"I rode my bike"},
+    {es:"Vi una película",en:"I watched a film"},
+    {es:"Salí con mis amigos",en:"I went out with my friends"},
+    {es:"No hice los deberes",en:"I didn't do my homework"},
+    // Time markers
+    {es:"ayer",en:"yesterday"},
+    {es:"luego",en:"later / then"},
+    {es:"por la mañana",en:"in the morning"},
+    {es:"por la tarde",en:"in the afternoon"},
+    {es:"un poco más tarde",en:"a bit later"},
+    // Hacer – preterite
+    {es:"hice",en:"I did"},
+    {es:"hiciste",en:"you did"},
+    {es:"hizo",en:"he/she did"},
+    {es:"hicimos",en:"we did"},
+    {es:"hicieron",en:"they did"},
+    // Irregular preterite forms
+    {es:"fui",en:"I went"},
+    {es:"vi",en:"I saw / I watched"},
+    {es:"salí",en:"I went out"},
+    {es:"jugué",en:"I played"},
+    {es:"monté",en:"I rode"},
+    {es:"bailé",en:"I danced"},
+    {es:"hablé",en:"I talked"},
+    // Present vs. preterite contrast
+    {es:"Normalmente juego",en:"I normally play"},
+    {es:"Pero ayer jugué",en:"But yesterday I played"},
+  ],
+
+  mod25: [
+    // TV guide / authentic text vocabulary
+    {es:"la guía de televisión",en:"the TV guide"},
+    {es:"el canal",en:"the channel"},
+    {es:"la fecha",en:"the date"},
+    {es:"el entretenimiento",en:"entertainment"},
+    {es:"los deportes",en:"sport / sports"},
+    {es:"las series",en:"series"},
+    {es:"los documentales",en:"documentaries"},
+    {es:"un concurso de cultura general",en:"a general knowledge quiz"},
+    {es:"Atrapa un millón",en:"Catch a million"},
+    {es:"Grandes documentales",en:"Big documentaries"},
+    {es:"el mundo natural",en:"the natural world"},
+    {es:"cuenta la historia de",en:"it tells the story of"},
+    {es:"basado/a en la novela de",en:"based on the novel by"},
+    {es:"noticias deportivas",en:"sports news"},
+    {es:"las mayores competiciones",en:"the biggest competitions"},
+    // Cognates / near-cognates worth knowing
+    {es:"criminal",en:"criminal"},
+    {es:"invasión",en:"invasion"},
+    {es:"participantes",en:"participants"},
+    {es:"héroe",en:"hero"},
+  ],
+
+  palabras: [
+    // ─ HIGH-FREQUENCY WORDS from Palabras spread ─
+    {es:"así que",en:"so (that)"},
+    {es:"más… que",en:"more… than"},
+    {es:"mi / mis",en:"my"},
+    {es:"su / sus",en:"his / her"},
+    {es:"normalmente",en:"normally"},
+    {es:"o",en:"or"},
+    {es:"además",en:"in addition / furthermore"},
+    {es:"porque",en:"because"},
+    {es:"también",en:"also / too"},
+    {es:"sin embargo",en:"nevertheless / however"},
+    {es:"no",en:"no / not"},
+    {es:"nunca",en:"never"},
+    {es:"y",en:"and"},
+    // ─ Extra Palabras vocab ─
+    {es:"¿Qué haces con tu móvil?",en:"What do you do with your mobile?"},
+    {es:"¿Con qué frecuencia?",en:"How often?"},
+    {es:"¿Qué tipo de música te gusta?",en:"What type of music do you like?"},
+    {es:"¿Qué hiciste ayer?",en:"What did you do yesterday?"},
+    {es:"¿Te gusta la música de...?",en:"Do you like ...'s music?"},
+    {es:"Me gusta la música de...",en:"I like ...'s music"},
+    {es:"mi grupo favorito",en:"my favourite group"},
+  ]
+};
+
+// ─── GAME STATE ─────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const flash = document.getElementById('flash');
+
+let W, H;
+function resize() {
+  W = canvas.width  = Math.min(window.innerWidth,  900);
+  H = canvas.height = Math.min(window.innerHeight, 700);
+}
+resize();
+window.addEventListener('resize', resize);
+
+let state = 'menu';
+let score, lives, level, combo;
+let aliens = [], bullets = [], particles = [];
+let ship;
+let currentQ, activeTopics, pool;
+let highScore = parseInt(localStorage.getItem('hs_viva2mod2') || '0');
+let scoreHistory = JSON.parse(localStorage.getItem('sh_viva2mod2') || '[]');
+
+// Input
+const keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space') { e.preventDefault(); fireBullet(); }
+});
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+// ─── TOPIC TOGGLES ──────────────────────────────────────────────────────────────
+const topicButtons = document.querySelectorAll('.topic-btn');
+let selectedTopics = new Set(['mod21','mod22','mod23','mod24','mod25','palabras']);
+topicButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const t = btn.dataset.topic;
+    if (selectedTopics.has(t)) {
+      if (selectedTopics.size > 1) { selectedTopics.delete(t); btn.classList.remove('active'); }
+    } else {
+      selectedTopics.add(t); btn.classList.add('active');
+    }
+  });
+});
+
+// ─── QUESTION LOGIC ─────────────────────────────────────────────────────────────
+function buildPool() {
+  pool = [];
+  selectedTopics.forEach(t => pool.push(...(vocab[t] || [])));
+  for (let i = pool.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [pool[i],pool[j]] = [pool[j],pool[i]];
+  }
+}
+
+function newQuestion() {
+  if (!pool.length) buildPool();
+  const item = pool.splice(0,1)[0];
+  const esFirst = Math.random() < 0.5;
+  currentQ = {
+    prompt: esFirst ? item.en : item.es,
+    answer: esFirst ? item.es : item.en,
+    isEsPrompt: !esFirst
+  };
+  return currentQ;
+}
+
+function getWrongAnswers(correct, count) {
+  const all = [];
+  selectedTopics.forEach(t => all.push(...vocab[t]));
+  const esFirst = !currentQ.isEsPrompt;
+  const candidates = all.map(v => esFirst ? v.es : v.en).filter(v => v !== correct);
+  const shuffled = candidates.sort(() => Math.random()-0.5);
+  return shuffled.slice(0, count);
+}
+
+// ─── SHIP ───────────────────────────────────────────────────────────────────────
+function initShip() {
+  ship = { x: W/2, y: H - 50, w: 40, h: 30, spd: 12, shooting: false };
+}
+
+function fireBullet() {
+  if (state !== 'playing') return;
+  bullets.push({ x: ship.x, y: ship.y - 15, spd: 14, active: true });
+}
+
+// ─── ALIENS ─────────────────────────────────────────────────────────────────────
+const ALIEN_COLORS = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff','#ff9f1c'];
+const ALIEN_EMOJIS = ['👾','🛸','🤖','👽','🔮','💀'];
+
+// Measure text to size the alien capsule dynamically
+function measureLabel(label) {
+  ctx.font = 'bold 14px Courier New';
+  const lines = wrapLabel(label, 160);
+  const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + 28;
+  const h = lines.length > 1 ? 62 : 50;
+  return { w: Math.max(w, 80), h };
+}
+
+function wrapLabel(label, maxPx) {
+  ctx.font = 'bold 14px Courier New';
+  const words = label.split(' ');
+  const lines = [];
+  let cur = '';
+  for (const w of words) {
+    const test = cur ? cur + ' ' + w : w;
+    if (ctx.measureText(test).width > maxPx && cur) {
+      lines.push(cur);
+      cur = w;
+    } else {
+      cur = test;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+function spawnAlienWave() {
+  const q = newQuestion();
+  const wrongAnswers = getWrongAnswers(q.answer, Math.min(3 + Math.floor(level/3), 5));
+  const allAnswers = [q.answer, ...wrongAnswers].sort(() => Math.random()-0.5);
+
+  const count = allAnswers.length;
+  const spacing = W / (count + 1);
+  const startY = -70;
+  const spd = 0.5 + level * 0.18;
+
+  allAnswers.forEach((ans, i) => {
+    const dims = measureLabel(ans);
+    aliens.push({
+      x: spacing * (i + 1),
+      y: startY - i * 18,
+      w: dims.w, h: dims.h,
+      label: ans,
+      isCorrect: ans === q.answer,
+      spd,
+      color: ALIEN_COLORS[i % ALIEN_COLORS.length],
+      emoji: ALIEN_EMOJIS[i % ALIEN_EMOJIS.length],
+      hit: false,
+      wobble: Math.random() * Math.PI * 2
+    });
+  });
+}
+
+// ─── PARTICLES ──────────────────────────────────────────────────────────────────
+function explode(x, y, color, count=14) {
+  for (let i=0; i<count; i++) {
+    const angle = (Math.PI*2/count)*i + Math.random()*0.5;
+    const spd = 2 + Math.random()*4;
+    particles.push({ x, y, vx: Math.cos(angle)*spd, vy: Math.sin(angle)*spd, life: 1, color, size: 3+Math.random()*4 });
+  }
+}
+
+function doFlash(color) {
+  flash.style.background = color;
+  flash.style.opacity = '0.35';
+  setTimeout(()=>{ flash.style.opacity='0'; }, 150);
+}
+
+// ─── DRAW ───────────────────────────────────────────────────────────────────────
+function drawStars() {
+  if (!drawStars.stars) {
+    drawStars.stars = Array.from({length:80}, ()=>({ x:Math.random()*900, y:Math.random()*700, r:Math.random()*1.5, b:Math.random() }));
+  }
+  drawStars.stars.forEach(s => {
+    ctx.globalAlpha = 0.4 + 0.6*Math.abs(Math.sin(Date.now()/2000 + s.b*10));
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(s.x % W, s.y % H, s.r, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawShip() {
+  const x = ship.x, y = ship.y;
+  ctx.fillStyle = '#00ffcc';
+  ctx.beginPath();
+  ctx.moveTo(x, y - 20);
+  ctx.lineTo(x - 18, y + 12);
+  ctx.lineTo(x + 18, y + 12);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#7affdf';
+  ctx.fillRect(x - 3, y - 28, 6, 14);
+  ctx.fillStyle = '#00ccaa';
+  ctx.beginPath();
+  ctx.moveTo(x - 18, y + 12); ctx.lineTo(x - 30, y + 20); ctx.lineTo(x - 10, y + 12);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x + 18, y + 12); ctx.lineTo(x + 30, y + 20); ctx.lineTo(x + 10, y + 12);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,255,204,0.18)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4,6]);
+  ctx.beginPath(); ctx.moveTo(x, y - 28); ctx.lineTo(x, 0); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawAlien(a) {
+  a.wobble += 0.04;
+  const wx = Math.sin(a.wobble) * 3;
+  const x = a.x + wx, y = a.y;
+
+  // Glow
+  ctx.shadowColor = a.color;
+  ctx.shadowBlur = 14;
+  ctx.fillStyle = a.color + '33';
+  ctx.beginPath();
+  ctx.ellipse(x, y, a.w/2+8, a.h/2+8, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Body
+  ctx.fillStyle = a.color + '55';
+  ctx.strokeStyle = a.color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(x, y, a.w/2, a.h/2, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Emoji
+  ctx.font = '16px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(a.emoji, x, y - a.h/2 + 18);
+
+  // Label — bigger font, wrapping
+  const lines = wrapLabel(a.label, a.w - 16);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 14px Courier New';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = 'rgba(0,0,0,0.8)';
+  ctx.shadowBlur = 4;
+  if (lines.length === 1) {
+    ctx.fillText(lines[0], x, y + 6);
+  } else {
+    const lineH = 17;
+    const totalH = lines.length * lineH;
+    const startY = y - totalH/2 + lineH;
+    lines.forEach((ln, idx) => ctx.fillText(ln, x, startY + idx * lineH));
+  }
+  ctx.shadowBlur = 0;
+}
+
+function drawBullet(b) {
+  ctx.shadowColor = '#ffd700';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath();
+  ctx.ellipse(b.x, b.y, 3, 8, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function drawHUD() {
+  ctx.fillStyle = '#00ffcc';
+  ctx.font = 'bold 16px Courier New';
+  ctx.textAlign = 'left';
+  ctx.fillText(`SCORE: ${score}`, 12, 24);
+
+  ctx.fillStyle = '#ffd700';
+  ctx.textAlign = 'center';
+  ctx.fillText(`LEVEL ${level}`, W/2, 24);
+
+  ctx.fillStyle = '#7affdf';
+  ctx.textAlign = 'right';
+  ctx.fillText(`HI: ${highScore}`, W-12, 24);
+
+  for (let i=0; i<lives; i++) {
+    ctx.fillStyle = '#ff4466';
+    ctx.font = '18px serif';
+    ctx.fillText('♥', W-12 - i*24, 48);
+  }
+
+  // Question prompt — larger and clearly visible
+  const prompt = currentQ ? currentQ.prompt : '';
+  ctx.font = 'bold 19px Courier New';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = '#00ffcc';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#fff';
+  ctx.fillText(`➤  ${prompt}`, W/2, H - 18);
+  ctx.shadowBlur = 0;
+
+  if (combo >= 3) {
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 14px Courier New';
+    ctx.textAlign = 'left';
+    ctx.fillText(`🔥 COMBO x${combo}`, 12, 48);
+  }
+}
+
+// ─── UPDATE ─────────────────────────────────────────────────────────────────────
+function update(dt) {
+  if (keys['ArrowLeft'] || keys['KeyA']) ship.x = Math.max(20, ship.x - ship.spd);
+  if (keys['ArrowRight'] || keys['KeyD']) ship.x = Math.min(W-20, ship.x + ship.spd);
+
+  bullets.forEach(b => { b.y -= b.spd; });
+  bullets = bullets.filter(b => b.y > 0);
+
+  aliens.forEach(a => { a.y += a.spd; });
+
+  bullets.forEach(b => {
+    if (!b.active) return;
+    aliens.forEach(a => {
+      if (a.hit) return;
+      if (Math.abs(b.x - a.x) < a.w/2 && Math.abs(b.y - a.y) < a.h/2) {
+        b.active = false;
+        a.hit = true;
+        if (a.isCorrect) {
+          combo++;
+          const bonus = combo >= 3 ? 5 : 0;
+          score += 10 + bonus + level;
+          explode(a.x, a.y, '#00ffcc', 18);
+          doFlash('#00ffcc');
+          aliens.forEach(o => { if (!o.isCorrect) o.hit = true; });
+          setTimeout(() => spawnAlienWave(), 400);
+        } else {
+          combo = 0;
+          lives--;
+          explode(a.x, a.y, '#ff4466', 12);
+          doFlash('#ff4466');
+          if (lives <= 0) endGame();
+        }
+      }
+    });
+  });
+  bullets = bullets.filter(b => b.active);
+
+  aliens.forEach(a => {
+    if (!a.hit && a.y > H + 40) {
+      if (a.isCorrect) {
+        a.hit = true;
+        combo = 0;
+        lives--;
+        doFlash('#ff4466');
+        aliens.forEach(o => { if (!o.isCorrect) o.hit = true; });
+        if (lives <= 0) { endGame(); return; }
+        setTimeout(() => spawnAlienWave(), 400);
+      } else {
+        a.hit = true;
+      }
+    }
+  });
+  aliens = aliens.filter(a => !a.hit);
+
+  const nextLevel = Math.floor(score / 80) + 1;
+  if (nextLevel > level) { level = nextLevel; }
+
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.1;
+    p.life -= 0.035;
+  });
+  particles = particles.filter(p => p.life > 0);
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ─── LOOP ───────────────────────────────────────────────────────────────────────
+let lastTime = 0;
+function loop(ts) {
+  const dt = ts - lastTime; lastTime = ts;
+  if (state === 'playing') {
+    ctx.clearRect(0,0,W,H);
+    drawStars();
+    drawShip();
+    aliens.forEach(drawAlien);
+    bullets.forEach(drawBullet);
+    drawParticles();
+    drawHUD();
+    update(dt);
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ─── GAME CONTROL ───────────────────────────────────────────────────────────────
+function startGame() {
+  score = 0; lives = 3; level = 1; combo = 0;
+  aliens = []; bullets = []; particles = [];
+  buildPool();
+  initShip();
+  spawnAlienWave();
+  state = 'playing';
+  document.getElementById('menu-screen').classList.add('hidden');
+  document.getElementById('gameover-screen').classList.add('hidden');
+}
+
+function endGame() {
+  state = 'gameover';
+  const isNewHS = score > highScore;
+  if (isNewHS) { highScore = score; localStorage.setItem('hs_viva2mod2', highScore); }
+
+  scoreHistory.unshift({ score, level, date: new Date().toLocaleDateString('en-AU') });
+  if (scoreHistory.length > 8) scoreHistory = scoreHistory.slice(0,8);
+  localStorage.setItem('sh_viva2mod2', JSON.stringify(scoreHistory));
+
+  document.getElementById('final-score').textContent = `SCORE: ${score}`;
+  document.getElementById('final-level').textContent = `Reached Level ${level}`;
+  document.getElementById('new-hs').style.display = isNewHS ? 'block' : 'none';
+  renderHistory('score-history-go');
+  document.getElementById('gameover-screen').classList.remove('hidden');
+}
+
+function renderHistory(id) {
+  const el = document.getElementById(id);
+  if (!scoreHistory.length) { el.textContent = ''; return; }
+  el.innerHTML = '<span style="color:#aaa">— SCORE HISTORY —</span><br>' +
+    scoreHistory.map((s,i) => `${i+1}. ${s.date} &nbsp; Score: ${s.score} &nbsp; Lv ${s.level}`).join('<br>');
+}
+
+function showMenu() {
+  state = 'menu';
+  document.getElementById('highscore-display').textContent = `🏆 HIGH SCORE: ${highScore}`;
+  renderHistory('score-history');
+  document.getElementById('menu-screen').classList.remove('hidden');
+  document.getElementById('gameover-screen').classList.add('hidden');
+}
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('play-again-btn').addEventListener('click', startGame);
+document.getElementById('menu-btn').addEventListener('click', showMenu);
+
+// Mobile touch
+let touchX = null;
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  touchX = e.touches[0].clientX;
+  fireBullet();
+}, {passive:false});
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const dx = e.touches[0].clientX - touchX;
+  ship.x = Math.max(20, Math.min(W-20, ship.x + dx));
+  touchX = e.touches[0].clientX;
+}, {passive:false});
+
+showMenu();
+</script>
+</body>
+</html>
