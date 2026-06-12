@@ -9,8 +9,7 @@
   body { background: #0a0a1a; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; user-select: none; }
   #canvas { display: block; margin: 0 auto; background: #0a0a1a; cursor: none; }
 
-  /* SCREENS */
-  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a1a; z-index: 10; }
+  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a1a; z-index: 10; overflow-y: auto; padding: 1rem 0; }
   .screen.hidden { display: none; }
 
   h1 { font-size: 2.8rem; color: #00ffcc; text-shadow: 0 0 20px #00ffcc; letter-spacing: 4px; margin-bottom: 0.3rem; }
@@ -30,7 +29,49 @@
   #final-level { font-size: 1rem; color: #7affdf; margin-bottom: 1.5rem; }
   #new-hs { color: #ffd700; font-size: 1.1rem; letter-spacing: 2px; margin-bottom: 0.5rem; display: none; }
 
+  .cannon-grid { display: flex; gap: 0.8rem; justify-content: center; margin-bottom: 1.2rem; flex-wrap: wrap; }
+  .cannon-card {
+    border: 2px solid #444; padding: 0.6rem 1rem; cursor: pointer;
+    text-align: center; min-width: 120px; transition: all 0.2s;
+    font-family: 'Courier New', monospace; background: transparent; color: #aaa;
+  }
+  .cannon-card.active { border-color: #00ffcc; color: #00ffcc; background: rgba(0,255,204,0.08); box-shadow: 0 0 12px rgba(0,255,204,0.3); }
+  .cannon-card:hover { border-color: #7affdf; color: #7affdf; }
+  .cannon-icon { font-size: 1.6rem; display: block; margin-bottom: 0.3rem; }
+  .cannon-name { font-size: 0.75rem; letter-spacing: 1px; font-weight: bold; display: block; }
+  .cannon-desc { font-size: 0.65rem; color: inherit; opacity: 0.7; display: block; margin-top: 0.2rem; }
+  .cannon-neg  { font-size: 0.62rem; color: #ff8888; display: block; margin-top: 0.25rem; opacity: 0.85; }
+
+  .ship-grid { display: flex; gap: 0.8rem; justify-content: center; margin-bottom: 1.2rem; flex-wrap: wrap; }
+  .ship-card {
+    border: 2px solid #444; padding: 0.6rem 1rem; cursor: pointer;
+    text-align: center; min-width: 120px; transition: all 0.2s;
+    font-family: 'Courier New', monospace; background: transparent; color: #aaa;
+  }
+  .ship-card.active { border-color: #00ffcc; color: #00ffcc; background: rgba(0,255,204,0.08); box-shadow: 0 0 12px rgba(0,255,204,0.3); }
+  .ship-card:hover  { border-color: #7affdf; color: #7affdf; }
+  .ship-icon  { font-size: 1.6rem; display: block; margin-bottom: 0.3rem; }
+  .ship-name  { font-size: 0.75rem; letter-spacing: 1px; font-weight: bold; display: block; }
+  .ship-stats { font-size: 0.62rem; color: inherit; opacity: 0.7; display: block; margin-top: 0.2rem; }
+  .ship-neg   { font-size: 0.62rem; color: #ff8888; display: block; margin-top: 0.25rem; opacity: 0.85; }
+
+  #wall-warn {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,200,255,0.85); color: #0a0a1a;
+    font-family: 'Courier New', monospace; font-size: 0.9rem; font-weight: bold;
+    padding: 0.4rem 1.2rem; border: 2px solid #00ccff;
+    pointer-events: none; z-index: 15; display: none; letter-spacing: 2px;
+  }
+
   #flash { position: fixed; inset: 0; pointer-events: none; z-index: 20; opacity: 0; transition: opacity 0.1s; }
+
+  #meteor-warn {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,100,0,0.85); color: #fff;
+    font-family: 'Courier New', monospace; font-size: 0.9rem;
+    padding: 0.4rem 1.2rem; border: 2px solid #ff6400;
+    pointer-events: none; z-index: 15; display: none; letter-spacing: 2px;
+  }
 </style>
 </head>
 <body>
@@ -38,31 +79,91 @@
 <!-- MENU -->
 <div id="menu-screen" class="screen">
   <h1>👾 ALIEN ESPAÑOL</h1>
-  <h2>VIVA 2 — MÓDULO 2</h2>
+  <h2>VIVA 2 — MÓDULO 2 · TODO SOBRE MI VIDA</h2>
 
   <div id="highscore-display">🏆 HIGH SCORE: 0</div>
 
-  <p style="color:#aaa; font-size:0.85rem; margin-bottom:0.8rem; letter-spacing:1px;">SELECT TOPICS:</p>
-  <div class="topic-grid">
+  <p style="color:#aaa; font-size:0.85rem; margin-bottom:0.5rem; letter-spacing:1px;">SELECT TOPICS:</p>
+  <div class="topic-grid" style="margin-bottom:0.5rem;">
     <button class="btn topic-btn active" data-topic="mod21">2.1 – MY PHONE</button>
     <button class="btn topic-btn active" data-topic="mod22">2.2 – MUSIC</button>
     <button class="btn topic-btn active" data-topic="mod23">2.3 – TV SHOWS</button>
     <button class="btn topic-btn active" data-topic="mod24">2.4 – PRETERITE</button>
     <button class="btn topic-btn active" data-topic="mod25">2.5 – TV GUIDE</button>
-    <button class="btn topic-btn active" data-topic="palabras">PALABRAS – ALL VOC</button>
+    <button class="btn topic-btn active" data-topic="palabras">PALABRAS</button>
+  </div>
+  <div style="margin-bottom:1.2rem;">
+    <button class="btn" id="all-topics-btn" style="font-size:0.75rem; padding:0.3rem 1.2rem; opacity:0.7;">✓ SELECT ALL</button>
+    <button class="btn" id="no-topics-btn" style="font-size:0.75rem; padding:0.3rem 1.2rem; opacity:0.7;">✗ CLEAR ALL</button>
   </div>
 
-  <p style="color:#aaa; font-size:0.85rem; margin-bottom:0.6rem; letter-spacing:1px;">SELECT DIFFICULTY:</p>
-  <div style="display:flex; gap:0.6rem; margin-bottom:1.5rem;">
+  <p style="color:#aaa; font-size:0.85rem; margin-bottom:0.5rem; letter-spacing:1px;">SELECT DIFFICULTY:</p>
+  <div style="display:flex; gap:0.6rem; margin-bottom:0.4rem; flex-wrap:wrap; justify-content:center;">
     <button class="btn diff-btn active" data-diff="beginner" style="border-color:#6bcb77; color:#6bcb77;">🟢 BEGINNER</button>
     <button class="btn diff-btn" data-diff="intermediate" style="border-color:#ffd93d; color:#ffd93d;">🟡 INTERMEDIATE</button>
     <button class="btn diff-btn" data-diff="expert" style="border-color:#ff6b6b; color:#ff6b6b;">🔴 EXPERT</button>
   </div>
-  <div id="diff-desc" style="font-size:0.78rem; color:#aaa; margin-bottom:1rem; text-align:center; letter-spacing:1px; min-height:1.2em;"></div>
+  <div id="diff-desc" style="font-size:0.78rem; color:#aaa; margin-bottom:1.2rem; text-align:center; letter-spacing:1px; min-height:1.2em;"></div>
+
+  <p style="color:#aaa; font-size:0.85rem; margin-bottom:0.5rem; letter-spacing:1px;">SELECT YOUR CANNON:</p>
+  <div class="cannon-grid">
+    <div class="cannon-card active" data-cannon="standard">
+      <span class="cannon-icon">🚀</span>
+      <span class="cannon-name">STANDARD</span>
+      <span class="cannon-desc">Single shot · fast reload</span>
+      <span class="cannon-neg">No drawbacks (boring)</span>
+    </div>
+    <div class="cannon-card" data-cannon="spread">
+      <span class="cannon-icon">💥</span>
+      <span class="cannon-name">SPREAD</span>
+      <span class="cannon-desc">3-way burst · wider aim</span>
+      <span class="cannon-neg">⚠ Side shots can hit wrong answers</span>
+    </div>
+    <div class="cannon-card" data-cannon="laser">
+      <span class="cannon-icon">⚡</span>
+      <span class="cannon-name">LASER</span>
+      <span class="cannon-desc">Pierces all in column</span>
+      <span class="cannon-neg">⚠ Aliens speed up during reload</span>
+    </div>
+    <div class="cannon-card" data-cannon="bomb">
+      <span class="cannon-icon">💣</span>
+      <span class="cannon-name">BOMB</span>
+      <span class="cannon-desc">Huge blast radius</span>
+      <span class="cannon-neg">⚠ Recoil knocks ship sideways</span>
+    </div>
+  </div>
+
+  <p style="color:#aaa; font-size:0.85rem; margin-bottom:0.5rem; letter-spacing:1px;">SELECT YOUR SHIP:</p>
+  <div class="ship-grid">
+    <div class="ship-card active" data-ship="fighter">
+      <span class="ship-icon">🚀</span>
+      <span class="ship-name">FIGHTER</span>
+      <span class="ship-stats">Balanced · normal speed</span>
+      <span class="ship-neg">No bonus, no penalty</span>
+    </div>
+    <div class="ship-card" data-ship="speeder">
+      <span class="ship-icon">⚡</span>
+      <span class="ship-name">SPEEDER</span>
+      <span class="ship-stats">1.7× speed · tiny hitbox</span>
+      <span class="ship-neg">⚠ Bullets half-size · 1 life less</span>
+    </div>
+    <div class="ship-card" data-ship="tank">
+      <span class="ship-icon">🛡️</span>
+      <span class="ship-name">TANK</span>
+      <span class="ship-stats">Double HP · absorbs 1 meteor</span>
+      <span class="ship-neg">⚠ 0.5× speed · wide hitbox</span>
+    </div>
+    <div class="ship-card" data-ship="ghost">
+      <span class="ship-icon">👻</span>
+      <span class="ship-name">GHOST</span>
+      <span class="ship-stats">Passes through walls</span>
+      <span class="ship-neg">⚠ 1 life only · no shield drops</span>
+    </div>
+  </div>
 
   <div id="score-history"></div>
   <button class="btn" id="start-btn" style="font-size:1.2rem; padding:0.9rem 3rem;">▶ START GAME</button>
-  <p style="color:#555; font-size:0.75rem; margin-top:1rem;">← → to move &nbsp;|&nbsp; SPACE to fire</p>
+  <p style="color:#555; font-size:0.75rem; margin-top:1rem; margin-bottom:1rem;">← → to move &nbsp;|&nbsp; SPACE to fire &nbsp;|&nbsp; ☄️ Dodge meteors &amp; walls!</p>
 </div>
 
 <!-- GAME OVER -->
@@ -71,18 +172,21 @@
   <div id="new-hs">⭐ NEW HIGH SCORE! ⭐</div>
   <div id="final-score"></div>
   <div id="final-level"></div>
-  <div id="final-diff" style="font-size:0.9rem; color:#aaa; margin-bottom:0.5rem; letter-spacing:1px;"></div>
+  <div id="final-diff" style="font-size:0.9rem; color:#aaa; margin-bottom:0.3rem; letter-spacing:1px;"></div>
+  <div id="final-cannon" style="font-size:0.9rem; color:#7affdf; margin-bottom:0.5rem; letter-spacing:1px;"></div>
   <div id="score-history-go" style="font-size:0.8rem;color:#7affdf;margin-bottom:1.5rem;text-align:center;line-height:1.8;"></div>
   <button class="btn" id="play-again-btn">↩ PLAY AGAIN</button>
   <button class="btn" id="menu-btn">☰ MENU</button>
 </div>
 
-<!-- FLASH OVERLAY -->
+<!-- FLASH / METEOR WARN -->
 <div id="flash"></div>
+<div id="meteor-warn">☄️ METEOR INCOMING!</div>
+<div id="wall-warn">⚡ ENERGY WALL — DODGE!</div>
 <canvas id="canvas"></canvas>
 
 <script>
-// ─── VOCAB DATA ────────────────────────────────────────────────────────────────
+// ─── VOCAB DATA — VIVA 2 MODULE 2: TODO SOBRE MI VIDA ────────────────────────
 const vocab = {
 
   mod21: [
@@ -100,7 +204,7 @@ const vocab = {
     {es:"dos o tres veces a la semana",en:"two or three times a week"},
     {es:"a veces",en:"sometimes"},
     {es:"de vez en cuando",en:"from time to time"},
-    // Present tense reference
+    // Present tense
     {es:"hablo",en:"I talk / I speak"},
     {es:"leo",en:"I read"},
     {es:"comparto",en:"I share"},
@@ -144,7 +248,7 @@ const vocab = {
     {es:"una serie policiaca",en:"a police series"},
     {es:"una telenovela",en:"a soap opera"},
     {es:"el telediario",en:"the news"},
-    // Opinions + comparisons
+    // Adjectives
     {es:"divertido/a",en:"funny"},
     {es:"informativo/a",en:"informative"},
     {es:"interesante",en:"interesting"},
@@ -152,7 +256,7 @@ const vocab = {
     {es:"emocionante",en:"exciting"},
     {es:"Prefiero las comedias",en:"I prefer comedies"},
     {es:"porque son más divertidas",en:"because they are funnier"},
-    // Stem-changing verb preferir
+    // Preferir conjugation
     {es:"prefiero",en:"I prefer"},
     {es:"prefieres",en:"you prefer"},
     {es:"prefiere",en:"he/she prefers"},
@@ -182,13 +286,13 @@ const vocab = {
     {es:"por la mañana",en:"in the morning"},
     {es:"por la tarde",en:"in the afternoon"},
     {es:"un poco más tarde",en:"a bit later"},
-    // Hacer – preterite
+    // Hacer preterite
     {es:"hice",en:"I did"},
     {es:"hiciste",en:"you did"},
     {es:"hizo",en:"he/she did"},
     {es:"hicimos",en:"we did"},
     {es:"hicieron",en:"they did"},
-    // Irregular preterite forms
+    // Other irregular preterites
     {es:"fui",en:"I went"},
     {es:"vi",en:"I saw / I watched"},
     {es:"salí",en:"I went out"},
@@ -196,13 +300,13 @@ const vocab = {
     {es:"monté",en:"I rode"},
     {es:"bailé",en:"I danced"},
     {es:"hablé",en:"I talked"},
-    // Present vs. preterite contrast
+    // Contrast
     {es:"Normalmente juego",en:"I normally play"},
     {es:"Pero ayer jugué",en:"But yesterday I played"},
   ],
 
   mod25: [
-    // TV guide / authentic text vocabulary
+    // TV guide vocabulary
     {es:"la guía de televisión",en:"the TV guide"},
     {es:"el canal",en:"the channel"},
     {es:"la fecha",en:"the date"},
@@ -218,7 +322,6 @@ const vocab = {
     {es:"basado/a en la novela de",en:"based on the novel by"},
     {es:"noticias deportivas",en:"sports news"},
     {es:"las mayores competiciones",en:"the biggest competitions"},
-    // Cognates / near-cognates worth knowing
     {es:"criminal",en:"criminal"},
     {es:"invasión",en:"invasion"},
     {es:"participantes",en:"participants"},
@@ -226,7 +329,7 @@ const vocab = {
   ],
 
   palabras: [
-    // ─ HIGH-FREQUENCY WORDS from Palabras spread ─
+    // High-frequency words from Palabras spread pp.48–49
     {es:"así que",en:"so (that)"},
     {es:"más… que",en:"more… than"},
     {es:"mi / mis",en:"my"},
@@ -240,7 +343,7 @@ const vocab = {
     {es:"no",en:"no / not"},
     {es:"nunca",en:"never"},
     {es:"y",en:"and"},
-    // ─ Extra Palabras vocab ─
+    // Section heading phrases
     {es:"¿Qué haces con tu móvil?",en:"What do you do with your mobile?"},
     {es:"¿Con qué frecuencia?",en:"How often?"},
     {es:"¿Qué tipo de música te gusta?",en:"What type of music do you like?"},
@@ -248,13 +351,480 @@ const vocab = {
     {es:"¿Te gusta la música de...?",en:"Do you like ...'s music?"},
     {es:"Me gusta la música de...",en:"I like ...'s music"},
     {es:"mi grupo favorito",en:"my favourite group"},
-  ]
+  ],
 };
 
-// ─── GAME STATE ─────────────────────────────────────────────────────────────────
+// ─── CANNON CONFIGS ───────────────────────────────────────────────────────────
+const CANNONS = {
+  standard: {
+    label: '🚀 STANDARD', color: '#ffd700', reload: 280,
+    fire: (ship, bullets) => {
+      bullets.push({ x: ship.x, y: ship.y - 15, spd: 14, active: true, type:'standard', w:3, h:8 });
+    }
+  },
+  spread: {
+    label: '💥 SPREAD', color: '#ff9f1c', reload: 420,
+    fire: (ship, bullets) => {
+      const angles = [-22, 0, 22];
+      angles.forEach(deg => {
+        const rad = deg * Math.PI / 180;
+        bullets.push({
+          x: ship.x, y: ship.y - 15, spd: 13, active: true, type:'spread',
+          vx: Math.sin(rad) * 13, vy: -Math.cos(rad) * 13, w:3, h:6,
+          wrongRisk: deg !== 0,
+        });
+      });
+    }
+  },
+  laser: {
+    label: '⚡ LASER', color: '#c77dff', reload: 750,
+    fire: (ship, bullets) => {
+      bullets.push({ x: ship.x, y: ship.y - 15, spd: 20, active: true, type:'laser',
+        piercing: true, w:2, h:22 });
+    }
+  },
+  bomb: {
+    label: '💣 BOMB', color: '#ff4466', reload: 950,
+    fire: (ship, bullets) => {
+      bullets.push({ x: ship.x, y: ship.y - 15, spd: 8, active: true, type:'bomb',
+        explodeRadius: 90, w:8, h:8 });
+      const dir = (keys['ArrowLeft'] || keys['KeyA']) ? 1 : (keys['ArrowRight'] || keys['KeyD']) ? -1 : (Math.random() < 0.5 ? 1 : -1);
+      ship.recoilVx = dir * 18;
+    }
+  }
+};
+
+// ─── SHIP CONFIGS ─────────────────────────────────────────────────────────────
+const SHIPS = {
+  fighter: {
+    label: '🚀 FIGHTER', color: '#00ffcc',
+    spd: 12, hitbox: 16, lifeBonus: 0,
+    bulletScale: 1, wallImmune: false, meteorAbsorb: false, noShieldDrop: false,
+    draw(ctx, x, y, cannonColor) {
+      const t = Date.now();
+      const c = '#00ffcc';
+      ctx.save();
+
+      // ── Thruster flame ──────────────────────────────────────────
+      const fl = Math.abs(Math.sin(t / 55)) * 6 + 12;
+      const flameG = ctx.createLinearGradient(x, y + 14, x, y + 14 + fl);
+      flameG.addColorStop(0, '#ffffff');
+      flameG.addColorStop(0.3, c);
+      flameG.addColorStop(1, 'rgba(0,255,204,0)');
+      ctx.fillStyle = flameG;
+      ctx.beginPath();
+      ctx.moveTo(x - 6, y + 14);
+      ctx.quadraticCurveTo(x, y + 14 + fl, x + 6, y + 14);
+      ctx.closePath();
+      ctx.fill();
+
+      // ── Wing glow underlay ───────────────────────────────────────
+      ctx.shadowColor = c; ctx.shadowBlur = 18;
+      // Left wing
+      const wgL = ctx.createLinearGradient(x - 36, y + 16, x - 8, y + 2);
+      wgL.addColorStop(0, 'rgba(0,255,204,0)');
+      wgL.addColorStop(1, c + 'cc');
+      ctx.fillStyle = wgL;
+      ctx.beginPath();
+      ctx.moveTo(x - 8, y + 2);
+      ctx.lineTo(x - 36, y + 18);
+      ctx.lineTo(x - 26, y + 22);
+      ctx.lineTo(x - 8, y + 14);
+      ctx.closePath(); ctx.fill();
+      // Right wing
+      const wgR = ctx.createLinearGradient(x + 8, y + 2, x + 36, y + 16);
+      wgR.addColorStop(0, c + 'cc');
+      wgR.addColorStop(1, 'rgba(0,255,204,0)');
+      ctx.fillStyle = wgR;
+      ctx.beginPath();
+      ctx.moveTo(x + 8, y + 2);
+      ctx.lineTo(x + 36, y + 18);
+      ctx.lineTo(x + 26, y + 22);
+      ctx.lineTo(x + 8, y + 14);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // ── Main hull ────────────────────────────────────────────────
+      const hullG = ctx.createLinearGradient(x - 18, 0, x + 18, 0);
+      hullG.addColorStop(0,   '#003322');
+      hullG.addColorStop(0.35, c);
+      hullG.addColorStop(0.65, c);
+      hullG.addColorStop(1,   '#003322');
+      ctx.fillStyle = hullG;
+      ctx.shadowColor = c; ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(x,      y - 32);          // nose tip
+      ctx.bezierCurveTo(x + 5,  y - 20, x + 17, y - 2, x + 15, y + 14);
+      ctx.lineTo(x - 15, y + 14);
+      ctx.bezierCurveTo(x - 17, y - 2, x - 5, y - 20, x, y - 32);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // ── Hull edge stroke ──────────────────────────────────────────
+      ctx.strokeStyle = c; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 32);
+      ctx.bezierCurveTo(x + 5, y - 20, x + 17, y - 2, x + 15, y + 14);
+      ctx.lineTo(x - 15, y + 14);
+      ctx.bezierCurveTo(x - 17, y - 2, x - 5, y - 20, x, y - 32);
+      ctx.closePath(); ctx.stroke();
+
+      // ── Internal panel lines ──────────────────────────────────────
+      ctx.strokeStyle = 'rgba(0,255,204,0.25)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x - 10, y - 4); ctx.lineTo(x + 10, y - 4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - 13, y + 6); ctx.lineTo(x + 13, y + 6); ctx.stroke();
+
+      // ── Nose highlight ────────────────────────────────────────────
+      const noseG = ctx.createLinearGradient(x - 5, y - 32, x + 5, y - 10);
+      noseG.addColorStop(0, 'rgba(255,255,255,0.55)');
+      noseG.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = noseG;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 32);
+      ctx.bezierCurveTo(x + 2, y - 24, x + 5, y - 16, x + 4, y - 10);
+      ctx.lineTo(x + 1, y - 10);
+      ctx.bezierCurveTo(x + 2, y - 16, x + 1, y - 24, x, y - 32);
+      ctx.closePath(); ctx.fill();
+
+      // ── Cockpit ────────────────────────────────────────────────────
+      ctx.fillStyle = '#001a10';
+      ctx.beginPath(); ctx.ellipse(x, y - 14, 5, 8, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = c + '88'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.ellipse(x, y - 14, 5, 8, 0, 0, Math.PI * 2); ctx.stroke();
+      // Cockpit glint
+      ctx.fillStyle = 'rgba(0,255,204,0.45)';
+      ctx.beginPath(); ctx.ellipse(x - 1.5, y - 17, 2, 4, -0.2, 0, Math.PI * 2); ctx.fill();
+
+      // ── Cannon barrel ────────────────────────────────────────────
+      const bG = ctx.createLinearGradient(x - 4, 0, x + 4, 0);
+      bG.addColorStop(0, '#001a10');
+      bG.addColorStop(0.5, cannonColor);
+      bG.addColorStop(1, '#001a10');
+      ctx.fillStyle = bG;
+      ctx.shadowColor = cannonColor; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.roundRect(x - 3, y - 46, 6, 18, 2); ctx.fill();
+      ctx.strokeStyle = cannonColor + 'aa'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.restore();
+    }
+  },
+
+  speeder: {
+    label: '⚡ SPEEDER', color: '#ffd700',
+    spd: 20, hitbox: 9, lifeBonus: -1,
+    bulletScale: 0.5, wallImmune: false, meteorAbsorb: false, noShieldDrop: false,
+    draw(ctx, x, y, cannonColor) {
+      const t = Date.now();
+      const c = '#ffd700';
+      ctx.save();
+
+      // ── Speed streaks ─────────────────────────────────────────────
+      for (let i = 1; i <= 5; i++) {
+        ctx.globalAlpha = 0.06 * (6 - i);
+        ctx.strokeStyle = c;
+        ctx.lineWidth = 10 - i * 1.6;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x - 8 + i, y + 10 + i * 4);
+        ctx.lineTo(x + 8 - i, y + 10 + i * 4);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1; ctx.lineCap = 'butt';
+
+      // ── Twin flames ──────────────────────────────────────────────
+      const fl = Math.abs(Math.sin(t / 45)) * 5 + 10;
+      for (const ox of [-5, 5]) {
+        const fG = ctx.createLinearGradient(x + ox, y + 12, x + ox, y + 12 + fl);
+        fG.addColorStop(0, '#ffffff');
+        fG.addColorStop(0.4, c);
+        fG.addColorStop(1, 'rgba(255,215,0,0)');
+        ctx.fillStyle = fG;
+        ctx.beginPath();
+        ctx.moveTo(x + ox - 3, y + 12);
+        ctx.quadraticCurveTo(x + ox, y + 12 + fl, x + ox + 3, y + 12);
+        ctx.closePath(); ctx.fill();
+      }
+
+      // ── Razor delta wings ────────────────────────────────────────
+      ctx.shadowColor = c; ctx.shadowBlur = 12;
+      const wL = ctx.createLinearGradient(x - 34, y + 12, x - 6, y - 2);
+      wL.addColorStop(0, 'rgba(255,215,0,0)');
+      wL.addColorStop(1, c + 'dd');
+      ctx.fillStyle = wL;
+      ctx.beginPath();
+      ctx.moveTo(x - 6, y - 2); ctx.lineTo(x - 34, y + 14);
+      ctx.lineTo(x - 18, y + 16); ctx.lineTo(x - 5, y + 12);
+      ctx.closePath(); ctx.fill();
+      const wR = ctx.createLinearGradient(x + 6, y - 2, x + 34, y + 12);
+      wR.addColorStop(0, c + 'dd');
+      wR.addColorStop(1, 'rgba(255,215,0,0)');
+      ctx.fillStyle = wR;
+      ctx.beginPath();
+      ctx.moveTo(x + 6, y - 2); ctx.lineTo(x + 34, y + 14);
+      ctx.lineTo(x + 18, y + 16); ctx.lineTo(x + 5, y + 12);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // ── Needle hull ──────────────────────────────────────────────
+      const hG = ctx.createLinearGradient(x - 10, 0, x + 10, 0);
+      hG.addColorStop(0,    '#5a3d00');
+      hG.addColorStop(0.4,  c);
+      hG.addColorStop(0.6,  c);
+      hG.addColorStop(1,    '#5a3d00');
+      ctx.fillStyle = hG;
+      ctx.shadowColor = c; ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 36);
+      ctx.bezierCurveTo(x + 3, y - 24, x + 9, y - 6, x + 7, y + 12);
+      ctx.lineTo(x - 7, y + 12);
+      ctx.bezierCurveTo(x - 9, y - 6, x - 3, y - 24, x, y - 36);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Hull edge
+      ctx.strokeStyle = c; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 36);
+      ctx.bezierCurveTo(x + 3, y - 24, x + 9, y - 6, x + 7, y + 12);
+      ctx.lineTo(x - 7, y + 12);
+      ctx.bezierCurveTo(x - 9, y - 6, x - 3, y - 24, x, y - 36);
+      ctx.closePath(); ctx.stroke();
+
+      // ── Nose highlight ─────────────────────────────────────────
+      const nG = ctx.createLinearGradient(x - 4, y - 36, x + 2, y - 14);
+      nG.addColorStop(0, 'rgba(255,255,255,0.6)');
+      nG.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = nG;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 36);
+      ctx.bezierCurveTo(x + 1.5, y - 28, x + 3, y - 18, x + 2.5, y - 14);
+      ctx.lineTo(x, y - 14);
+      ctx.bezierCurveTo(x - 0.5, y - 18, x - 0.5, y - 28, x, y - 36);
+      ctx.closePath(); ctx.fill();
+
+      // ── Slit cockpit ────────────────────────────────────────────
+      ctx.fillStyle = '#1a1000';
+      ctx.beginPath(); ctx.ellipse(x, y - 16, 3, 7, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,215,0,0.5)';
+      ctx.beginPath(); ctx.ellipse(x - 0.8, y - 19, 1.2, 3.5, -0.1, 0, Math.PI * 2); ctx.fill();
+
+      // ── Cannon ──────────────────────────────────────────────────
+      ctx.fillStyle = cannonColor;
+      ctx.shadowColor = cannonColor; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.roundRect(x - 2, y - 50, 4, 16, 1); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.restore();
+    }
+  },
+
+  tank: {
+    label: '🛡️ TANK', color: '#6bcb77',
+    spd: 6, hitbox: 26, lifeBonus: 2,
+    bulletScale: 1, wallImmune: false, meteorAbsorb: true, noShieldDrop: false,
+    draw(ctx, x, y, cannonColor) {
+      const t = Date.now();
+      const c = '#6bcb77';
+      ctx.save();
+
+      // ── Triple thruster glow ─────────────────────────────────────
+      const fl = Math.abs(Math.sin(t / 70)) * 5 + 10;
+      for (const ox of [-14, 0, 14]) {
+        const fG = ctx.createLinearGradient(x + ox, y + 16, x + ox, y + 16 + fl);
+        fG.addColorStop(0, '#aaffcc');
+        fG.addColorStop(0.3, c);
+        fG.addColorStop(1, 'rgba(107,203,119,0)');
+        ctx.fillStyle = fG;
+        ctx.beginPath();
+        ctx.moveTo(x + ox - 5, y + 16);
+        ctx.quadraticCurveTo(x + ox, y + 16 + fl, x + ox + 5, y + 16);
+        ctx.closePath(); ctx.fill();
+      }
+
+      // ── Side shield fins ─────────────────────────────────────────
+      ctx.shadowColor = c; ctx.shadowBlur = 14;
+      const fL = ctx.createLinearGradient(x - 48, y, x - 26, y);
+      fL.addColorStop(0, 'rgba(107,203,119,0)');
+      fL.addColorStop(1, c + 'cc');
+      ctx.fillStyle = fL;
+      ctx.beginPath();
+      ctx.moveTo(x - 26, y - 8); ctx.lineTo(x - 48, y + 4);
+      ctx.lineTo(x - 48, y + 18); ctx.lineTo(x - 26, y + 16);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = c + '66'; ctx.lineWidth = 1; ctx.stroke();
+      const fR = ctx.createLinearGradient(x + 26, y, x + 48, y);
+      fR.addColorStop(0, c + 'cc');
+      fR.addColorStop(1, 'rgba(107,203,119,0)');
+      ctx.fillStyle = fR;
+      ctx.beginPath();
+      ctx.moveTo(x + 26, y - 8); ctx.lineTo(x + 48, y + 4);
+      ctx.lineTo(x + 48, y + 18); ctx.lineTo(x + 26, y + 16);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = c + '66'; ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // ── Broad armoured hull ──────────────────────────────────────
+      const hG = ctx.createLinearGradient(x - 30, 0, x + 30, 0);
+      hG.addColorStop(0,    '#1a3d22');
+      hG.addColorStop(0.25, c);
+      hG.addColorStop(0.5,  '#aaffcc');
+      hG.addColorStop(0.75, c);
+      hG.addColorStop(1,    '#1a3d22');
+      ctx.fillStyle = hG;
+      ctx.shadowColor = c; ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 24);
+      ctx.bezierCurveTo(x + 10, y - 18, x + 30, y - 8, x + 28, y + 16);
+      ctx.lineTo(x - 28, y + 16);
+      ctx.bezierCurveTo(x - 30, y - 8, x - 10, y - 18, x, y - 24);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Hull outline
+      ctx.strokeStyle = c; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 24);
+      ctx.bezierCurveTo(x + 10, y - 18, x + 30, y - 8, x + 28, y + 16);
+      ctx.lineTo(x - 28, y + 16);
+      ctx.bezierCurveTo(x - 30, y - 8, x - 10, y - 18, x, y - 24);
+      ctx.closePath(); ctx.stroke();
+
+      // ── Armour plate lines ───────────────────────────────────────
+      ctx.strokeStyle = 'rgba(107,203,119,0.3)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x - 26, y - 2); ctx.lineTo(x + 26, y - 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - 24, y + 7); ctx.lineTo(x + 24, y + 7); ctx.stroke();
+      // Rivet dots
+      for (const rx of [-20, -10, 0, 10, 20]) {
+        ctx.fillStyle = 'rgba(107,203,119,0.5)';
+        ctx.beginPath(); ctx.arc(x + rx, y - 2, 1.5, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // ── Hull highlight ────────────────────────────────────────────
+      const hiG = ctx.createLinearGradient(x, y - 24, x, y);
+      hiG.addColorStop(0, 'rgba(255,255,255,0.22)');
+      hiG.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = hiG;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 24);
+      ctx.bezierCurveTo(x + 8, y - 18, x + 22, y - 8, x + 20, y - 2);
+      ctx.lineTo(x + 6, y - 2);
+      ctx.bezierCurveTo(x + 8, y - 8, x + 4, y - 18, x, y - 24);
+      ctx.closePath(); ctx.fill();
+
+      // ── Wide cockpit ─────────────────────────────────────────────
+      ctx.fillStyle = '#0a1a0e';
+      ctx.beginPath(); ctx.ellipse(x, y - 10, 8, 7, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = c + '88'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = 'rgba(107,203,119,0.4)';
+      ctx.beginPath(); ctx.ellipse(x - 2, y - 13, 3, 4, -0.3, 0, Math.PI * 2); ctx.fill();
+
+      // ── Heavy cannon ─────────────────────────────────────────────
+      const bG = ctx.createLinearGradient(x - 6, 0, x + 6, 0);
+      bG.addColorStop(0, '#1a3d22');
+      bG.addColorStop(0.5, cannonColor);
+      bG.addColorStop(1, '#1a3d22');
+      ctx.fillStyle = bG;
+      ctx.shadowColor = cannonColor; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.roundRect(x - 5, y - 38, 10, 18, 3); ctx.fill();
+      ctx.strokeStyle = cannonColor + 'aa'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.restore();
+    }
+  },
+
+  ghost: {
+    label: '👻 GHOST', color: '#c77dff',
+    spd: 14, hitbox: 14, lifeBonus: -99,
+    bulletScale: 1, wallImmune: true, meteorAbsorb: false, noShieldDrop: true,
+    draw(ctx, x, y, cannonColor) {
+      const t = Date.now();
+      const c = '#c77dff';
+      const pulse = Math.sin(t / 380);
+      const alpha = 0.52 + pulse * 0.18;
+      ctx.save();
+
+      // ── Outer ethereal aura ───────────────────────────────────────
+      ctx.globalAlpha = alpha * 0.3;
+      const aura = ctx.createRadialGradient(x, y - 4, 4, x, y - 4, 38);
+      aura.addColorStop(0, c);
+      aura.addColorStop(1, 'rgba(199,125,255,0)');
+      ctx.fillStyle = aura;
+      ctx.beginPath(); ctx.ellipse(x, y - 4, 38, 34, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = alpha;
+
+      // ── Flowing shroud body ───────────────────────────────────────
+      ctx.shadowColor = c; ctx.shadowBlur = 16 + pulse * 6;
+      const bodyG = ctx.createLinearGradient(x - 20, y - 28, x + 20, y + 18);
+      bodyG.addColorStop(0, '#e8b4ff');
+      bodyG.addColorStop(0.4, c);
+      bodyG.addColorStop(1, '#6a3388');
+      ctx.fillStyle = bodyG;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 28);
+      ctx.bezierCurveTo(x + 20, y - 28, x + 22, y - 10, x + 20, y + 2);
+      // Wavy hem
+      const w = Math.sin(t / 300);
+      ctx.bezierCurveTo(x + 18, y + 12, x + 20, y + 18, x + 14, y + 14);
+      ctx.bezierCurveTo(x + 8,  y + 10, x + 8,  y + 22, x + 3,  y + 17);
+      ctx.bezierCurveTo(x,      y + 12 + w * 3, x,  y + 22, x - 3,  y + 17);
+      ctx.bezierCurveTo(x - 8,  y + 12, x - 8,  y + 22, x - 14, y + 14);
+      ctx.bezierCurveTo(x - 20, y + 18, x - 18, y + 12, x - 20, y + 2);
+      ctx.bezierCurveTo(x - 22, y - 10, x - 20, y - 28, x, y - 28);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Shroud outline
+      ctx.strokeStyle = '#e8b4ff88'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 28);
+      ctx.bezierCurveTo(x + 20, y - 28, x + 22, y - 10, x + 20, y + 2);
+      ctx.bezierCurveTo(x + 18, y + 12, x + 20, y + 18, x + 14, y + 14);
+      ctx.bezierCurveTo(x + 8, y + 10, x + 8, y + 22, x + 3, y + 17);
+      ctx.bezierCurveTo(x, y + 12 + w * 3, x, y + 22, x - 3, y + 17);
+      ctx.bezierCurveTo(x - 8, y + 12, x - 8, y + 22, x - 14, y + 14);
+      ctx.bezierCurveTo(x - 20, y + 18, x - 18, y + 12, x - 20, y + 2);
+      ctx.bezierCurveTo(x - 22, y - 10, x - 20, y - 28, x, y - 28);
+      ctx.closePath(); ctx.stroke();
+
+      // ── Inner highlight ───────────────────────────────────────────
+      ctx.fillStyle = 'rgba(255,255,255,0.14)';
+      ctx.beginPath(); ctx.ellipse(x - 5, y - 14, 7, 11, -0.25, 0, Math.PI * 2); ctx.fill();
+
+      // ── Glowing eyes ──────────────────────────────────────────────
+      ctx.shadowColor = '#ff88ff'; ctx.shadowBlur = 12 + pulse * 5;
+      // Eye whites
+      ctx.fillStyle = '#2a0044';
+      ctx.beginPath(); ctx.ellipse(x - 7, y - 12, 6, 7, 0.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x + 7, y - 12, 6, 7, -0.2, 0, Math.PI * 2); ctx.fill();
+      // Iris glow
+      ctx.fillStyle = '#ee88ff';
+      ctx.beginPath(); ctx.ellipse(x - 7, y - 12, 4, 5, 0.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x + 7, y - 12, 4, 5, -0.2, 0, Math.PI * 2); ctx.fill();
+      // Pupil
+      ctx.fillStyle = '#110022';
+      ctx.beginPath(); ctx.arc(x - 7 + Math.sin(t/900), y - 12, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 7 + Math.sin(t/900), y - 12, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // ── Translucent cannon ────────────────────────────────────────
+      ctx.globalAlpha = alpha * 0.85;
+      ctx.fillStyle = cannonColor;
+      ctx.shadowColor = cannonColor; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.roundRect(x - 3, y - 44, 6, 18, 2); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+  },
+};
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const flash = document.getElementById('flash');
+const meteorWarn = document.getElementById('meteor-warn');
+const wallWarn   = document.getElementById('wall-warn');
 
 let W, H;
 function resize() {
@@ -266,67 +836,79 @@ window.addEventListener('resize', resize);
 
 let state = 'menu';
 let score, lives, level, combo;
-let aliens = [], bullets = [], particles = [];
-let ship;
-let currentQ, pool;
-let selectedDiff = 'beginner';
+let aliens = [], bullets = [], particles = [], meteors = [];
+let powerups = [], floaters = [], walls = [];
+let wallTimer = 0, ship, currentQ, pool;
+let selectedDiff   = 'beginner';
+let selectedCannon = 'standard';
+let selectedShip   = 'fighter';
+let lastFireTime = 0, meteorTimer = 0;
+let shakeTime = 0, shakeMag = 0;
+let shieldActive = false, slowmoActive = false, slowmoEndTime = 0;
+let laserCooldownActive = false;
 
-// Per-difficulty high scores and history
-const HS_KEY  = d => `hs_viva2mod2_${d}`;
-const SH_KEY  = d => `sh_viva2mod2_${d}`;
+const HS_KEY = d => `hs_viva2mod2_${d}`;
+const SH_KEY = d => `sh_viva2mod2_${d}`;
 let highScore    = parseInt(localStorage.getItem(HS_KEY(selectedDiff)) || '0');
 let scoreHistory = JSON.parse(localStorage.getItem(SH_KEY(selectedDiff)) || '[]');
 
-// ─── DIFFICULTY CONFIG ───────────────────────────────────────────────────────────
+// ─── DIFFICULTY CONFIG ────────────────────────────────────────────────────────
 const DIFF = {
   beginner: {
     label: '🟢 BEGINNER',
     desc:  '3 distractors · slow speed · 5 lives · EN → ES only',
     color: '#6bcb77',
-    lives: 5,
-    baseSpd: 0.35,
-    spdPerLevel: 0.12,
-    distractors: 3,         // always 3 wrong answers
-    esPromptOnly: false,    // English prompt → shoot Spanish answer
-    enPromptOnly: true,     // always EN → ES (easier reading direction)
-    levelThresh: 100,
+    lives: 5, baseSpd: 0.35, spdPerLevel: 0.12, distractors: 3,
+    esPromptOnly: false, enPromptOnly: true, levelThresh: 100,
   },
   intermediate: {
     label: '🟡 INTERMEDIATE',
     desc:  '4 distractors · medium speed · 3 lives · mixed directions',
     color: '#ffd93d',
-    lives: 3,
-    baseSpd: 0.55,
-    spdPerLevel: 0.18,
-    distractors: 4,
-    esPromptOnly: false,
-    enPromptOnly: false,    // random direction
-    levelThresh: 80,
+    lives: 3, baseSpd: 0.55, spdPerLevel: 0.18, distractors: 4,
+    esPromptOnly: false, enPromptOnly: false, levelThresh: 80,
   },
   expert: {
     label: '🔴 EXPERT',
-    desc:  '5 distractors · fast speed · 2 lives · ES → EN only · similar distractors',
+    desc:  '5 distractors · fast · 2 lives · ES → EN only · similar distractors',
     color: '#ff6b6b',
-    lives: 2,
-    baseSpd: 0.85,
-    spdPerLevel: 0.25,
-    distractors: 5,
-    esPromptOnly: true,     // Spanish prompt → shoot English answer (harder)
-    enPromptOnly: false,
-    levelThresh: 60,
+    lives: 2, baseSpd: 0.85, spdPerLevel: 0.25, distractors: 5,
+    esPromptOnly: true, enPromptOnly: false, levelThresh: 60,
     similarDistractors: true,
   },
 };
 
-// Input
+// ─── INPUT ────────────────────────────────────────────────────────────────────
 const keys = {};
 window.addEventListener('keydown', e => {
   keys[e.code] = true;
-  if (e.code === 'Space') { e.preventDefault(); fireBullet(); }
+  if (e.code === 'Space') { e.preventDefault(); tryFire(); }
 });
 window.addEventListener('keyup', e => keys[e.code] = false);
 
-// ─── DIFFICULTY TOGGLES ─────────────────────────────────────────────────────────
+function tryFire() {
+  if (state !== 'playing') return;
+  const now = Date.now();
+  const reload = CANNONS[selectedCannon].reload;
+  if (now - lastFireTime < reload) return;
+  lastFireTime = now;
+  const before = bullets.length;
+  CANNONS[selectedCannon].fire(ship, bullets);
+  const bScale = SHIPS[selectedShip].bulletScale;
+  if (bScale !== 1) {
+    for (let i = before; i < bullets.length; i++) {
+      if (bullets[i].w) bullets[i].w *= bScale;
+      if (bullets[i].h) bullets[i].h *= bScale;
+      if (bullets[i].explodeRadius) bullets[i].explodeRadius *= bScale;
+    }
+  }
+  if (selectedCannon === 'laser') {
+    laserCooldownActive = true;
+    setTimeout(() => { laserCooldownActive = false; }, reload);
+  }
+}
+
+// ─── DIFFICULTY TOGGLES ──────────────────────────────────────────────────────
 const diffButtons = document.querySelectorAll('.diff-btn');
 const DIFF_DESCS = {
   beginner:     '3 distractors · slow · 5 lives · English prompt → shoot Spanish',
@@ -349,7 +931,22 @@ diffButtons.forEach(btn => {
   });
 });
 
-// ─── TOPIC TOGGLES ──────────────────────────────────────────────────────────────
+document.querySelectorAll('.cannon-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.cannon-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    selectedCannon = card.dataset.cannon;
+  });
+});
+
+document.querySelectorAll('.ship-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.ship-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    selectedShip = card.dataset.ship;
+  });
+});
+
 const topicButtons = document.querySelectorAll('.topic-btn');
 let selectedTopics = new Set(['mod21','mod22','mod23','mod24','mod25','palabras']);
 topicButtons.forEach(btn => {
@@ -363,7 +960,20 @@ topicButtons.forEach(btn => {
   });
 });
 
-// ─── QUESTION LOGIC ─────────────────────────────────────────────────────────────
+document.getElementById('all-topics-btn').addEventListener('click', () => {
+  topicButtons.forEach(btn => { selectedTopics.add(btn.dataset.topic); btn.classList.add('active'); });
+});
+document.getElementById('no-topics-btn').addEventListener('click', () => {
+  const allTopics = [...topicButtons].map(b => b.dataset.topic);
+  // Keep only the first one selected (can't have zero)
+  allTopics.forEach((t, i) => {
+    const btn = topicButtons[i];
+    if (i === 0) { selectedTopics = new Set([t]); btn.classList.add('active'); }
+    else { selectedTopics.delete(t); btn.classList.remove('active'); }
+  });
+});
+
+// ─── QUESTION LOGIC ──────────────────────────────────────────────────────────
 function buildPool() {
   pool = [];
   selectedTopics.forEach(t => pool.push(...(vocab[t] || [])));
@@ -378,9 +988,9 @@ function newQuestion() {
   const item = pool.splice(0,1)[0];
   const cfg = DIFF[selectedDiff];
   let esFirst;
-  if (cfg.enPromptOnly)   esFirst = false;  // EN prompt → ES answer
-  else if (cfg.esPromptOnly) esFirst = true; // ES prompt → EN answer
-  else esFirst = Math.random() < 0.5;
+  if (cfg.enPromptOnly)      esFirst = false;
+  else if (cfg.esPromptOnly) esFirst = true;
+  else                       esFirst = Math.random() < 0.5;
   currentQ = {
     prompt: esFirst ? item.es : item.en,
     answer: esFirst ? item.en : item.es,
@@ -393,55 +1003,47 @@ function getWrongAnswers(correct, count) {
   const cfg = DIFF[selectedDiff];
   const all = [];
   selectedTopics.forEach(t => all.push(...vocab[t]));
-  const wantEs = currentQ.isEsPrompt;  // prompt is ES → answers are EN
+  const wantEs = currentQ.isEsPrompt;
   const candidates = all.map(v => wantEs ? v.en : v.es).filter(v => v !== correct);
-
   if (cfg.similarDistractors) {
-    // Expert: prefer distractors of similar length (±40%) to make it harder
     const cLen = correct.length;
     const similar = candidates.filter(v => Math.abs(v.length - cLen) / cLen < 0.4);
     const rest    = candidates.filter(v => Math.abs(v.length - cLen) / cLen >= 0.4);
-    const pool2   = [...similar.sort(() => Math.random()-0.5), ...rest.sort(() => Math.random()-0.5)];
-    return pool2.slice(0, count);
+    const p2 = [...similar.sort(() => Math.random()-0.5), ...rest.sort(() => Math.random()-0.5)];
+    return p2.slice(0, count);
   }
   return candidates.sort(() => Math.random()-0.5).slice(0, count);
 }
 
-// ─── SHIP ───────────────────────────────────────────────────────────────────────
+// ─── SHIP ────────────────────────────────────────────────────────────────────
 function initShip() {
-  ship = { x: W/2, y: H - 50, w: 40, h: 30, spd: 12, shooting: false };
+  const sc = SHIPS[selectedShip];
+  ship = { x: W/2, y: H - 50, w: 40, h: 30, spd: sc.spd, hitbox: sc.hitbox, recoilVx: 0 };
 }
 
-function fireBullet() {
-  if (state !== 'playing') return;
-  bullets.push({ x: ship.x, y: ship.y - 15, spd: 14, active: true });
-}
-
-// ─── ALIENS ─────────────────────────────────────────────────────────────────────
+// ─── ALIENS ──────────────────────────────────────────────────────────────────
 const ALIEN_COLORS = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff','#ff9f1c'];
-const ALIEN_EMOJIS = ['👾','🛸','🤖','👽','🔮','💀'];
+// Each alien type has a unique canvas-drawn body (no emoji)
+const ALIEN_TYPES = ['cyclops','blob','spider','ufo','horns','crab'];
 
 function measureLabel(label) {
-  ctx.font = 'bold 14px Courier New';
-  const lines = wrapLabel(label, 160);
+  ctx.font = 'bold 15px Courier New';
+  const lines = wrapLabel(label, 155);
   const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + 28;
-  const h = lines.length > 1 ? 62 : 50;
+  // Box only needs to fit the text — alien body is drawn above
+  const h = lines.length > 1 ? 40 : 28;
   return { w: Math.max(w, 80), h };
 }
 
 function wrapLabel(label, maxPx) {
-  ctx.font = 'bold 14px Courier New';
+  ctx.font = 'bold 15px Courier New';
   const words = label.split(' ');
   const lines = [];
   let cur = '';
   for (const w of words) {
     const test = cur ? cur + ' ' + w : w;
-    if (ctx.measureText(test).width > maxPx && cur) {
-      lines.push(cur);
-      cur = w;
-    } else {
-      cur = test;
-    }
+    if (ctx.measureText(test).width > maxPx && cur) { lines.push(cur); cur = w; }
+    else cur = test;
   }
   if (cur) lines.push(cur);
   return lines;
@@ -450,33 +1052,124 @@ function wrapLabel(label, maxPx) {
 function spawnAlienWave() {
   const cfg = DIFF[selectedDiff];
   const q = newQuestion();
-  const maxDistractors = Math.min(cfg.distractors + Math.floor(level/4), cfg.distractors);
+  const isBossWave = level % 5 === 0 && level > 0;
+  const extraDistractors = isBossWave ? Math.min(3, 8 - cfg.distractors) : 0;
+  const maxDistractors = Math.min(cfg.distractors + extraDistractors + Math.floor(level/4), cfg.distractors + extraDistractors);
   const wrongAnswers = getWrongAnswers(q.answer, maxDistractors);
   const allAnswers = [q.answer, ...wrongAnswers].sort(() => Math.random()-0.5);
-
   const count = allAnswers.length;
   const spacing = W / (count + 1);
   const startY = -70;
   const spd = cfg.baseSpd + level * cfg.spdPerLevel;
+  const bossDisguiseColor = '#6622aa';
+  const bossDisguiseType  = 'horns';
 
   allAnswers.forEach((ans, i) => {
+    const isCorrect = ans === q.answer;
+    const isBoss    = isBossWave && isCorrect;
+    let personality = 'normal';
+    if (isBossWave) {
+      personality = isCorrect ? 'dodger' : (Math.random() < 0.6 ? 'zigzag' : 'dodger');
+    } else {
+      const r = Math.random();
+      if (r < 0.18) personality = 'zigzag';
+      else if (r < 0.32) personality = 'dodger';
+    }
     const dims = measureLabel(ans);
+    // Space aliens evenly but ensure minimum gap between capsule edges
+    const minGap = 18;
+    const totalWidth = allAnswers.reduce((sum, a) => sum + measureLabel(a).w + minGap, 0);
+    const scale = Math.min(1, (W - 40) / totalWidth);
+    let xPos = 20;
+    for (let j = 0; j < i; j++) {
+      xPos += (measureLabel(allAnswers[j]).w + minGap) * scale;
+    }
+    xPos += measureLabel(ans).w / 2 * scale + minGap / 2 * scale;
+
     aliens.push({
-      x: spacing * (i + 1),
-      y: startY - i * 18,
+      x: xPos, y: startY - i * 18,
       w: dims.w, h: dims.h,
-      label: ans,
-      isCorrect: ans === q.answer,
-      spd,
-      color: ALIEN_COLORS[i % ALIEN_COLORS.length],
-      emoji: ALIEN_EMOJIS[i % ALIEN_EMOJIS.length],
-      hit: false,
-      wobble: Math.random() * Math.PI * 2
+      label: ans, isCorrect,
+      spd: isBossWave ? spd * 1.15 : spd,
+      color: isBossWave ? bossDisguiseColor : ALIEN_COLORS[i % ALIEN_COLORS.length],
+      alienType: isBossWave ? bossDisguiseType : ALIEN_TYPES[i % ALIEN_TYPES.length],
+      hit: false, wobble: Math.random() * Math.PI * 2,
+      personality, hp: isBoss ? 3 : 1, isBoss,
+      zigDir: Math.random() < 0.5 ? 1 : -1, zigTimer: 0,
+      dodgeVx: 0, tauntText: null, tauntLife: 0,
     });
   });
+
+  if (isBossWave) spawnFloater(`⚠ BOSS WAVE — READ THE LABELS!`, W/2, H/2 - 60, '#ff4466', 2.5);
 }
 
-// ─── PARTICLES ──────────────────────────────────────────────────────────────────
+// ─── METEORS ─────────────────────────────────────────────────────────────────
+let meteorWarnActive = false;
+
+function spawnMeteorWave() {
+  const count = 2 + Math.floor(level / 3);
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      if (state !== 'playing') return;
+      const size = 16 + Math.random() * 18;
+      meteors.push({
+        x: size + Math.random() * (W - size * 2), y: -size, size,
+        spd: 1.2 + Math.random() * 1.8 + level * 0.15,
+        vx: (Math.random() - 0.5) * 1.5,
+        rot: 0, rotSpd: (Math.random() - 0.5) * 0.08,
+        hp: 1, hit: false, flashTime: 0,
+      });
+    }, i * 600);
+  }
+  meteorWarnActive = true;
+  meteorWarn.style.display = 'block';
+  setTimeout(() => { meteorWarn.style.display = 'none'; meteorWarnActive = false; }, 2200);
+}
+
+// ─── ENERGY WALLS ────────────────────────────────────────────────────────────
+function spawnWall() {
+  if (state !== 'playing') return;
+  const gapW  = 90 + Math.random() * 60;
+  const gapX  = 20 + Math.random() * (W - gapW - 40);
+  const spd   = 0.8 + level * 0.08;
+  walls.push({ y: -14, spd, thickness: 14, gapX, gapW, phase: Math.random()*Math.PI*2 });
+  wallWarn.style.display = 'block';
+  setTimeout(() => { wallWarn.style.display = 'none'; }, 1800);
+}
+
+function drawWall(w) {
+  const t = Date.now();
+  const alpha = 0.75 + Math.sin(t/120 + w.phase)*0.2;
+  ctx.globalAlpha = alpha;
+  if (w.gapX > 0) {
+    const grad = ctx.createLinearGradient(0, w.y, w.gapX, w.y);
+    grad.addColorStop(0,'rgba(0,200,255,0)'); grad.addColorStop(0.2,'#00ccff'); grad.addColorStop(1,'#00ccff');
+    ctx.fillStyle = grad; ctx.shadowColor = '#00ccff'; ctx.shadowBlur = 18;
+    ctx.fillRect(0, w.y, w.gapX, w.thickness);
+  }
+  const rightStart = w.gapX + w.gapW;
+  if (rightStart < W) {
+    const grad2 = ctx.createLinearGradient(rightStart, w.y, W, w.y);
+    grad2.addColorStop(0,'#00ccff'); grad2.addColorStop(0.8,'#00ccff'); grad2.addColorStop(1,'rgba(0,200,255,0)');
+    ctx.fillStyle = grad2; ctx.shadowBlur = 18;
+    ctx.fillRect(rightStart, w.y, W - rightStart, w.thickness);
+  }
+  ctx.shadowBlur = 0;
+  for (let side = 0; side < 2; side++) {
+    const edgeX = side === 0 ? w.gapX : w.gapX + w.gapW;
+    for (let s = 0; s < 4; s++) {
+      const px = edgeX + (Math.random()-0.5)*12;
+      const py = w.y + Math.random() * w.thickness;
+      ctx.fillStyle = Math.random() < 0.5 ? '#fff' : '#00ffff';
+      ctx.beginPath(); ctx.arc(px, py, 1.5 + Math.random()*2, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.fillStyle = 'rgba(0,255,255,0.55)';
+  ctx.font = 'bold 11px Courier New'; ctx.textAlign = 'center';
+  ctx.fillText('↕ GAP', w.gapX + w.gapW/2, w.y + w.thickness/2 + 4);
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+}
+
 function explode(x, y, color, count=14) {
   for (let i=0; i<count; i++) {
     const angle = (Math.PI*2/count)*i + Math.random()*0.5;
@@ -491,7 +1184,30 @@ function doFlash(color) {
   setTimeout(()=>{ flash.style.opacity='0'; }, 150);
 }
 
-// ─── DRAW ───────────────────────────────────────────────────────────────────────
+function spawnFloater(text, x, y, color = '#fff', duration = 1.4) {
+  floaters.push({ text, x, y, color, life: 1, decay: 1 / (duration * 60), vy: -1.1 });
+}
+
+// ─── POWER-UPS ────────────────────────────────────────────────────────────────
+const POWERUP_TYPES = [
+  { type: 'shield', icon: '🛡️', color: '#4d96ff', label: 'SHIELD!' },
+  { type: 'slowmo', icon: '⏱️', color: '#c77dff', label: 'SLOW-MO!' },
+  { type: 'heart',  icon: '❤️', color: '#ff4466', label: '+1 LIFE!'  },
+];
+
+function spawnPowerup(x, y) {
+  const kind = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
+  powerups.push({
+    x, y, vx: (Math.random()-0.5)*2, vy: 1.4 + Math.random(),
+    ...kind, size: 18, life: 1, wobble: Math.random()*Math.PI*2, hit: false,
+  });
+}
+
+function triggerShake(magnitude, duration = 300) {
+  shakeMag = magnitude; shakeTime = Date.now() + duration;
+}
+
+// ─── DRAW ─────────────────────────────────────────────────────────────────────
 function drawStars() {
   if (!drawStars.stars) {
     drawStars.stars = Array.from({length:80}, ()=>({ x:Math.random()*900, y:Math.random()*700, r:Math.random()*1.5, b:Math.random() }));
@@ -499,200 +1215,560 @@ function drawStars() {
   drawStars.stars.forEach(s => {
     ctx.globalAlpha = 0.4 + 0.6*Math.abs(Math.sin(Date.now()/2000 + s.b*10));
     ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(s.x % W, s.y % H, s.r, 0, Math.PI*2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(s.x % W, s.y % H, s.r, 0, Math.PI*2); ctx.fill();
   });
   ctx.globalAlpha = 1;
 }
 
 function drawShip() {
-  const x = ship.x, y = ship.y;
-  ctx.fillStyle = '#00ffcc';
-  ctx.beginPath();
-  ctx.moveTo(x, y - 20);
-  ctx.lineTo(x - 18, y + 12);
-  ctx.lineTo(x + 18, y + 12);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = '#7affdf';
-  ctx.fillRect(x - 3, y - 28, 6, 14);
-  ctx.fillStyle = '#00ccaa';
-  ctx.beginPath();
-  ctx.moveTo(x - 18, y + 12); ctx.lineTo(x - 30, y + 20); ctx.lineTo(x - 10, y + 12);
-  ctx.closePath(); ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(x + 18, y + 12); ctx.lineTo(x + 30, y + 20); ctx.lineTo(x + 10, y + 12);
-  ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = 'rgba(0,255,204,0.18)';
-  ctx.lineWidth = 1;
+  const sc = SHIPS[selectedShip];
+  const shakeX = (selectedCannon === 'bomb' && Math.abs(ship.recoilVx) > 1)
+    ? (Math.random() - 0.5) * Math.abs(ship.recoilVx) * 0.6 : 0;
+  const x = ship.x + shakeX, y = ship.y;
+  const cannonColor = CANNONS[selectedCannon].color;
+  if (shieldActive) {
+    ctx.shadowColor = '#4d96ff'; ctx.shadowBlur = 20;
+    ctx.strokeStyle = '#4d96ff'; ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.6 + Math.sin(Date.now()/200)*0.3;
+    ctx.beginPath(); ctx.arc(x, y, ship.hitbox + 18, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  }
+  if (combo >= 5) {
+    const trailColor = combo >= 8 ? '#ff4466' : '#c77dff';
+    ctx.shadowColor = trailColor; ctx.shadowBlur = 18;
+    ctx.fillStyle = trailColor + '88';
+    ctx.beginPath(); ctx.ellipse(x, y + 22, 8 + combo*0.8, 22 + combo*1.2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  sc.draw(ctx, x, y, cannonColor);
+  ctx.strokeStyle = 'rgba(0,255,204,0.18)'; ctx.lineWidth = 1;
   ctx.setLineDash([4,6]);
   ctx.beginPath(); ctx.moveTo(x, y - 28); ctx.lineTo(x, 0); ctx.stroke();
   ctx.setLineDash([]);
 }
 
+// Draw a unique alien creature above the label box for each alien type
+function drawAlienBody(ctx, type, color, x, y, wobble, isCorrect) {
+  const t = Date.now();
+  const bob = Math.sin(wobble * 2) * 2;
+  const by = y + bob;
+  const glow = isCorrect ? 14 : 6;
+
+  ctx.shadowColor = color;
+  ctx.shadowBlur = glow;
+
+  if (type === 'cyclops') {
+    // Round blob body with one big eye
+    ctx.fillStyle = color + 'dd';
+    ctx.beginPath(); ctx.ellipse(x, by, 18, 16, 0, 0, Math.PI*2); ctx.fill();
+    // Antennae
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x-7, by-14); ctx.lineTo(x-10, by-26); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+7, by-14); ctx.lineTo(x+10, by-26); ctx.stroke();
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x-10, by-27, 3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x+10, by-27, 3, 0, Math.PI*2); ctx.fill();
+    // Big eye
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(x, by-2, 8, 9, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(x + Math.sin(t/800)*2, by-2, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x+2, by-5, 2, 0, Math.PI*2); ctx.fill();
+    // Mouth
+    ctx.strokeStyle = '#0a0a1a'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x, by+8, 5, 0.2, Math.PI-0.2); ctx.stroke();
+    // Stubby legs
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(x-10, by+14); ctx.lineTo(x-14, by+22); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+10, by+14); ctx.lineTo(x+14, by+22); ctx.stroke();
+
+  } else if (type === 'blob') {
+    // Wobbly multi-eyed blob
+    const sq = Math.sin(t/300)*0.08;
+    ctx.fillStyle = color + 'dd';
+    ctx.beginPath(); ctx.ellipse(x, by, 20+sq*10, 15-sq*5, 0, 0, Math.PI*2); ctx.fill();
+    // Three eyes
+    for (let i = -1; i <= 1; i++) {
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x + i*8, by-3, 5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(x + i*8 + Math.sin(t/600+i)*1.5, by-3, 3, 0, Math.PI*2); ctx.fill();
+    }
+    // Wavy bottom tentacles
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    for (let i = -2; i <= 2; i++) {
+      const tx = x + i*8;
+      ctx.beginPath(); ctx.moveTo(tx, by+13);
+      ctx.quadraticCurveTo(tx + Math.sin(t/400+i)*4, by+20, tx, by+26);
+      ctx.stroke();
+    }
+    // Antenna
+    ctx.beginPath(); ctx.moveTo(x, by-14); ctx.lineTo(x+Math.sin(t/500)*5, by-28); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x+Math.sin(t/500)*5, by-30, 4, 0, Math.PI*2); ctx.fill();
+
+  } else if (type === 'spider') {
+    // Spider body with many legs
+    ctx.fillStyle = color + 'dd';
+    ctx.beginPath(); ctx.ellipse(x, by-4, 12, 10, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x, by+8, 8, 7, 0, 0, Math.PI*2); ctx.fill();
+    // Eyes
+    ctx.fillStyle = '#fff';
+    for (let i = -1; i <= 1; i+=2) {
+      ctx.beginPath(); ctx.arc(x+i*5, by-6, 4, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#f00'; ctx.beginPath(); ctx.arc(x+i*5, by-6, 2, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff';
+    }
+    // Legs (4 per side)
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+    const legAngles = [-0.9,-0.5, 0.5, 0.9];
+    legAngles.forEach((ang, li) => {
+      const wave = Math.sin(t/200 + li) * 0.15;
+      [-1,1].forEach(side => {
+        ctx.beginPath();
+        ctx.moveTo(x + side*10, by);
+        ctx.lineTo(x + side*(10 + 14*Math.cos(ang+wave)), by + 14*Math.sin(ang+wave));
+        ctx.stroke();
+      });
+    });
+
+  } else if (type === 'ufo') {
+    // Classic saucer with dome
+    // Saucer body
+    ctx.fillStyle = color + 'bb';
+    ctx.beginPath(); ctx.ellipse(x, by+6, 22, 7, 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+    // Spinning lights
+    for (let i = 0; i < 5; i++) {
+      const angle = (t/300) + (Math.PI*2/5)*i;
+      const lx = x + Math.cos(angle)*14, ly = by+6;
+      ctx.fillStyle = i%2===0 ? '#ffd700' : '#fff';
+      ctx.beginPath(); ctx.arc(lx, ly, 2.5, 0, Math.PI*2); ctx.fill();
+    }
+    // Dome
+    ctx.fillStyle = color + '99';
+    ctx.beginPath(); ctx.ellipse(x, by-1, 13, 12, 0, Math.PI, 0); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(x, by-1, 13, 12, 0, Math.PI, 0); ctx.stroke();
+    // Alien inside dome
+    ctx.fillStyle = '#0a0a1a';
+    ctx.beginPath(); ctx.ellipse(x, by-4, 6, 5, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#7affdf';
+    ctx.beginPath(); ctx.arc(x-2, by-5, 2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+2, by-5, 2, 0, Math.PI*2); ctx.fill();
+    // Beam
+    ctx.fillStyle = color + '33';
+    ctx.beginPath(); ctx.moveTo(x-6, by+13); ctx.lineTo(x+6, by+13); ctx.lineTo(x+14, by+32); ctx.lineTo(x-14, by+32); ctx.closePath(); ctx.fill();
+
+  } else if (type === 'horns') {
+    // Demon alien with horns
+    ctx.fillStyle = color + 'dd';
+    ctx.beginPath(); ctx.ellipse(x, by, 16, 18, 0, 0, Math.PI*2); ctx.fill();
+    // Horns
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.moveTo(x-10, by-14); ctx.lineTo(x-16, by-30); ctx.lineTo(x-5, by-16); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x+10, by-14); ctx.lineTo(x+16, by-30); ctx.lineTo(x+5, by-16); ctx.closePath(); ctx.fill();
+    // Glowing eyes
+    ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 12;
+    ctx.fillStyle = '#ff2222';
+    ctx.beginPath(); ctx.ellipse(x-6, by-4, 5, 4, -0.3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+6, by-4, 5, 4, 0.3, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = glow; ctx.shadowColor = color;
+    // Fangs
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(x-4, by+6); ctx.lineTo(x-6, by+13); ctx.lineTo(x-2, by+6); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x+4, by+6); ctx.lineTo(x+6, by+13); ctx.lineTo(x+2, by+6); ctx.closePath(); ctx.fill();
+    // Arms
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(x-14, by+2); ctx.lineTo(x-26, by+10); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+14, by+2); ctx.lineTo(x+26, by+10); ctx.stroke();
+
+  } else { // crab
+    // Crab-like alien with pincers
+    ctx.fillStyle = color + 'dd';
+    ctx.beginPath(); ctx.ellipse(x, by, 18, 13, 0, 0, Math.PI*2); ctx.fill();
+    // Eye stalks
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x-8, by-11); ctx.lineTo(x-10, by-22); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+8, by-11); ctx.lineTo(x+10, by-22); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x-10, by-23, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x+10, by-23, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(x-10+Math.sin(t/700)*2, by-23, 3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(x+10+Math.sin(t/700)*2, by-23, 3, 0, Math.PI*2); ctx.fill();
+    // Pincers
+    const pwave = Math.sin(t/400)*0.2;
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(x-16, by); ctx.lineTo(x-28, by-6+Math.sin(t/300)*3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-28, by-6+Math.sin(t/300)*3); ctx.lineTo(x-34, by-2+pwave*5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-28, by-6+Math.sin(t/300)*3); ctx.lineTo(x-33, by-11+pwave*5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+16, by); ctx.lineTo(x+28, by-6+Math.sin(t/300)*3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+28, by-6+Math.sin(t/300)*3); ctx.lineTo(x+34, by-2-pwave*5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+28, by-6+Math.sin(t/300)*3); ctx.lineTo(x+33, by-11-pwave*5); ctx.stroke();
+    // Legs
+    ctx.lineWidth = 1.5;
+    for (let i = -1; i <= 1; i+=2) {
+      ctx.beginPath(); ctx.moveTo(x+i*10, by+10); ctx.lineTo(x+i*16, by+22); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+i*6, by+11); ctx.lineTo(x+i*10, by+24); ctx.stroke();
+    }
+  }
+
+  ctx.shadowBlur = 0;
+}
+
 function drawAlien(a) {
   a.wobble += 0.04;
-  const wx = Math.sin(a.wobble) * 3;
+  const wx = Math.sin(a.wobble) * (a.personality === 'zigzag' ? 0 : 3);
   const x = a.x + wx, y = a.y;
+  const now = Date.now();
 
-  // Glow
+  const flashing = a.hp > 1 && now - a.flashTime < 200;
+
+  // Draw alien body above the label box
+  ctx.save();
+  if (flashing) { ctx.shadowColor = '#fff'; ctx.shadowBlur = 24; }
+  drawAlienBody(ctx, a.alienType, a.color, x, y - a.h/2 - 28, a.wobble, a.isCorrect);
+  ctx.restore();
+
+  // Label box
   ctx.shadowColor = a.color;
-  ctx.shadowBlur = 14;
-  ctx.fillStyle = a.color + '33';
-  ctx.beginPath();
-  ctx.ellipse(x, y, a.w/2+8, a.h/2+8, 0, 0, Math.PI*2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
-  // Body
-  ctx.fillStyle = a.color + '55';
+  ctx.shadowBlur = a.isCorrect ? 10 : 4;
+  ctx.fillStyle = '#0a0a1a';
   ctx.strokeStyle = a.color;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = a.isCorrect ? 2.5 : 1.5;
+  const r = 8;
   ctx.beginPath();
-  ctx.ellipse(x, y, a.w/2, a.h/2, 0, 0, Math.PI*2);
-  ctx.fill();
-  ctx.stroke();
-
-  // Emoji
-  ctx.font = '16px serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(a.emoji, x, y - a.h/2 + 18);
-
-  // Label — bigger font, wrapping
-  const lines = wrapLabel(a.label, a.w - 16);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 14px Courier New';
-  ctx.textAlign = 'center';
-  ctx.shadowColor = 'rgba(0,0,0,0.8)';
-  ctx.shadowBlur = 4;
-  if (lines.length === 1) {
-    ctx.fillText(lines[0], x, y + 6);
-  } else {
-    const lineH = 17;
-    const totalH = lines.length * lineH;
-    const startY = y - totalH/2 + lineH;
-    lines.forEach((ln, idx) => ctx.fillText(ln, x, startY + idx * lineH));
-  }
+  ctx.moveTo(x - a.w/2 + r, y - a.h/2);
+  ctx.arcTo(x + a.w/2, y - a.h/2, x + a.w/2, y + a.h/2, r);
+  ctx.arcTo(x + a.w/2, y + a.h/2, x - a.w/2, y + a.h/2, r);
+  ctx.arcTo(x - a.w/2, y + a.h/2, x - a.w/2, y - a.h/2, r);
+  ctx.arcTo(x - a.w/2, y - a.h/2, x + a.w/2, y - a.h/2, r);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.shadowBlur = 0;
+
+  // Label text
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 15px Courier New'; ctx.textAlign = 'center';
+  const lines = wrapLabel(a.label, a.w - 16);
+  const lineH = 18;
+  const totalH = lines.length * lineH;
+  const startY = y - totalH/2 + 9;
+  lines.forEach((line, li) => ctx.fillText(line, x, startY + li * lineH));
+
+  // HP bars for boss
+  if (a.hp > 1) {
+    for (let i = 0; i < a.hp; i++) {
+      ctx.fillStyle = '#ff4466';
+      ctx.fillRect(x - 20 + i*16, y + a.h/2 + 4, 12, 5);
+    }
+  }
+
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 }
 
 function drawBullet(b) {
-  ctx.shadowColor = '#ffd700';
-  ctx.shadowBlur = 10;
-  ctx.fillStyle = '#ffd700';
+  const color = CANNONS[selectedCannon].color;
+  if (b.type === 'laser') {
+    ctx.strokeStyle = color; ctx.lineWidth = b.w; ctx.globalAlpha = 0.85;
+    ctx.shadowColor = color; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x, b.y - b.h); ctx.stroke();
+  } else if (b.type === 'bomb') {
+    ctx.fillStyle = color; ctx.globalAlpha = 0.9;
+    ctx.shadowColor = color; ctx.shadowBlur = 18;
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.w*1.2, 0, Math.PI*2); ctx.fill();
+  } else {
+    ctx.fillStyle = color; ctx.globalAlpha = 0.9;
+    ctx.shadowColor = color; ctx.shadowBlur = 8;
+    ctx.fillRect(b.x - b.w/2, b.y - b.h/2, b.w, b.h);
+  }
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+}
+
+function drawMeteor(m) {
+  const now = Date.now();
+  const flashing = now - m.flashTime < 120;
+  ctx.save();
+  ctx.translate(m.x, m.y); ctx.rotate(m.rot);
+  ctx.fillStyle = flashing ? '#fff' : '#884422';
+  ctx.strokeStyle = flashing ? '#ffaa00' : '#cc6633';
+  ctx.lineWidth = 2;
+  ctx.shadowColor = '#ff6600'; ctx.shadowBlur = flashing ? 24 : 10;
   ctx.beginPath();
-  ctx.ellipse(b.x, b.y, 3, 8, 0, 0, Math.PI*2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
+  const pts = 7;
+  for (let i = 0; i < pts; i++) {
+    const angle = (Math.PI*2/pts)*i + m.rot;
+    const rad = m.size * (0.8 + Math.random()*0.2);
+    if (i === 0) ctx.moveTo(Math.cos(angle)*rad, Math.sin(angle)*rad);
+    else ctx.lineTo(Math.cos(angle)*rad, Math.sin(angle)*rad);
+  }
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.shadowBlur = 0; ctx.restore();
+}
+
+function drawPowerup(p) {
+  const t = Date.now();
+  const bobY = Math.sin(t/400 + p.wobble) * 5;
+  ctx.globalAlpha = 0.85 + Math.sin(t/300)*0.1;
+  ctx.font = '22px serif'; ctx.textAlign = 'center';
+  ctx.shadowColor = p.color; ctx.shadowBlur = 14;
+  ctx.fillText(p.icon, p.x, p.y + bobY);
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+}
+
+function drawFloaters() {
+  floaters.forEach(f => {
+    ctx.globalAlpha = f.life;
+    ctx.fillStyle = f.color;
+    ctx.font = 'bold 16px Courier New'; ctx.textAlign = 'center';
+    ctx.fillText(f.text, f.x, f.y);
+  });
+  ctx.globalAlpha = 1;
 }
 
 function drawHUD() {
-  ctx.fillStyle = '#00ffcc';
-  ctx.font = 'bold 16px Courier New';
-  ctx.textAlign = 'left';
-  ctx.fillText(`SCORE: ${score}`, 12, 24);
-
-  ctx.fillStyle = '#ffd700';
-  ctx.textAlign = 'center';
-  ctx.fillText(`LEVEL ${level}`, W/2, 24);
-
-  ctx.fillStyle = '#7affdf';
-  ctx.textAlign = 'right';
-  ctx.fillText(`HI: ${highScore}`, W-12, 24);
-
-  for (let i=0; i<lives; i++) {
-    ctx.fillStyle = '#ff4466';
-    ctx.font = '18px serif';
-    ctx.fillText('♥', W-12 - i*24, 48);
-  }
-
-  // Question prompt — larger and clearly visible
-  const prompt = currentQ ? currentQ.prompt : '';
-  ctx.font = 'bold 19px Courier New';
-  ctx.textAlign = 'center';
-  ctx.shadowColor = '#00ffcc';
-  ctx.shadowBlur = 10;
-  ctx.fillStyle = '#fff';
-  ctx.fillText(`➤  ${prompt}`, W/2, H - 18);
-  ctx.shadowBlur = 0;
-
+  // Lives
+  const heartStr = '❤️'.repeat(Math.max(0, lives));
+  ctx.font = '18px serif'; ctx.textAlign = 'left';
+  ctx.fillText(heartStr, 10, 28);
+  // Score
+  ctx.fillStyle = '#ffd700'; ctx.font = 'bold 16px Courier New'; ctx.textAlign = 'right';
+  ctx.fillText(`${score}`, W - 10, 28);
+  // Level
+  ctx.fillStyle = '#7affdf'; ctx.font = '13px Courier New'; ctx.textAlign = 'right';
+  ctx.fillText(`LV ${level}`, W - 10, 48);
+  // Combo
   if (combo >= 3) {
-    ctx.fillStyle = '#ffd700';
-    ctx.font = 'bold 14px Courier New';
-    ctx.textAlign = 'left';
-    ctx.fillText(`🔥 COMBO x${combo}`, 12, 48);
+    const comboColor = combo >= 8 ? '#ff4466' : combo >= 5 ? '#c77dff' : '#ffd93d';
+    ctx.fillStyle = comboColor; ctx.font = 'bold 15px Courier New'; ctx.textAlign = 'left';
+    ctx.shadowColor = comboColor; ctx.shadowBlur = 10;
+    ctx.fillText(`🔥 ×${combo}`, 10, 52);
+    ctx.shadowBlur = 0;
   }
-
-  // Difficulty badge bottom-left
-  ctx.fillStyle = DIFF[selectedDiff].color;
-  ctx.font = 'bold 11px Courier New';
-  ctx.textAlign = 'left';
-  ctx.fillText(DIFF[selectedDiff].label, 12, H - 18);
+  // Prompt box
+  if (currentQ) {
+    const bw = Math.min(W - 20, 560);
+    const bx = (W - bw) / 2;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(bx, H - 88, bw, 44);
+    ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(bx, H - 88, bw, 44);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 17px Courier New'; ctx.textAlign = 'center';
+    ctx.shadowColor = '#00ffcc'; ctx.shadowBlur = 6;
+    ctx.fillText(currentQ.prompt, W/2, H - 58);
+    ctx.shadowBlur = 0;
+    const dir = currentQ.isEsPrompt ? 'ES → EN' : 'EN → ES';
+    ctx.fillStyle = '#7affdf'; ctx.font = '11px Courier New'; ctx.textAlign = 'right';
+    ctx.fillText(dir, bx + bw - 8, H - 48);
+  }
+  // Shield / slowmo indicators
+  if (shieldActive) {
+    ctx.fillStyle = '#4d96ff'; ctx.font = '12px Courier New'; ctx.textAlign = 'center';
+    ctx.fillText('🛡️ SHIELD', W/2, H - 100);
+  }
+  if (slowmoActive && Date.now() < slowmoEndTime) {
+    ctx.fillStyle = '#c77dff'; ctx.font = '12px Courier New'; ctx.textAlign = 'center';
+    ctx.fillText('⏱ SLOW-MO', W/2, H - 114);
+  }
 }
 
-// ─── UPDATE ─────────────────────────────────────────────────────────────────────
+// ─── UPDATE ───────────────────────────────────────────────────────────────────
 function update(dt) {
-  if (keys['ArrowLeft'] || keys['KeyA']) ship.x = Math.max(20, ship.x - ship.spd);
-  if (keys['ArrowRight'] || keys['KeyD']) ship.x = Math.min(W-20, ship.x + ship.spd);
+  const sc = SHIPS[selectedShip];
+  const speedMult = (slowmoActive && Date.now() < slowmoEndTime) ? 0.35 : 1;
+  if (Date.now() >= slowmoEndTime) slowmoActive = false;
 
-  bullets.forEach(b => { b.y -= b.spd; });
-  bullets = bullets.filter(b => b.y > 0);
+  // Ship movement
+  const spd = ship.spd;
+  if (keys['ArrowLeft'] || keys['KeyA'])  ship.x = Math.max(sc.hitbox, ship.x - spd);
+  if (keys['ArrowRight'] || keys['KeyD']) ship.x = Math.min(W - sc.hitbox, ship.x + spd);
 
-  aliens.forEach(a => { a.y += a.spd; });
+  // Bomb recoil
+  if (ship.recoilVx !== 0) {
+    ship.x = Math.max(sc.hitbox, Math.min(W - sc.hitbox, ship.x + ship.recoilVx));
+    ship.recoilVx *= 0.82;
+    if (Math.abs(ship.recoilVx) < 0.3) ship.recoilVx = 0;
+  }
 
+  // Meteor timer
+  meteorTimer += dt;
+  const meteorInterval = Math.max(8000, 18000 - level * 800);
+  if (meteorTimer > meteorInterval) { meteorTimer = 0; spawnMeteorWave(); }
+
+  // Wall timer
+  wallTimer += dt;
+  const wallInterval = Math.max(12000, 30000 - level * 1200);
+  if (wallTimer > wallInterval) { wallTimer = 0; spawnWall(); }
+
+  // Alien movement
+  const laserSpeedBoost = (selectedCannon === 'laser' && laserCooldownActive) ? 1.5 : 1;
+  aliens.forEach(a => {
+    if (a.hit) return;
+    // Personality movement
+    if (a.personality === 'zigzag') {
+      a.zigTimer++;
+      if (a.zigTimer > 40) { a.zigDir *= -1; a.zigTimer = 0; }
+      a.x += a.zigDir * 1.8 * speedMult;
+    } else if (a.personality === 'dodger') {
+      const dx = ship.x - a.x;
+      if (bullets.some(b => Math.abs(b.x - a.x) < 40 && b.y < a.y)) {
+        a.dodgeVx = dx > 0 ? -3 : 3;
+      }
+      a.dodgeVx *= 0.92;
+      a.x += a.dodgeVx * speedMult;
+    }
+    a.x = Math.max(a.w/2, Math.min(W - a.w/2, a.x));
+    a.y += a.spd * speedMult * laserSpeedBoost;
+  });
+
+  // Bullet movement
+  bullets.forEach(b => {
+    if (b.vx) b.x += b.vx; else { /* standard: just y */ }
+    if (b.vy) b.y += b.vy; else b.y -= b.spd;
+  });
+
+  // Bullet-alien collision
   bullets.forEach(b => {
     if (!b.active) return;
     aliens.forEach(a => {
-      if (a.hit) return;
-      if (Math.abs(b.x - a.x) < a.w/2 && Math.abs(b.y - a.y) < a.h/2) {
-        b.active = false;
-        a.hit = true;
+      if (a.hit || b.hit) return;
+      let hit = false;
+      if (b.type === 'bomb') {
+        const dist = Math.hypot(b.x - a.x, b.y - a.y);
+        if (dist < (b.explodeRadius + a.w/2)) hit = true;
+      } else if (b.type === 'laser') {
+        if (Math.abs(b.x - a.x) < a.w/2 + b.w && b.y < a.y + a.h/2 && b.y > a.y - a.h/2 - 80) hit = true;
+      } else {
+        if (Math.abs(b.x - a.x) < a.w/2 + b.w/2 && Math.abs(b.y - a.y) < a.h/2 + b.h/2) hit = true;
+      }
+      if (hit) {
+        if (!b.piercing) b.hit = true;
         if (a.isCorrect) {
-          combo++;
-          const bonus = combo >= 3 ? 5 : 0;
-          score += 10 + bonus + level;
-          explode(a.x, a.y, '#00ffcc', 18);
-          doFlash('#00ffcc');
-          aliens.forEach(o => { if (!o.isCorrect) o.hit = true; });
-          setTimeout(() => spawnAlienWave(), 400);
+          a.hp--;
+          a.flashTime = Date.now();
+          if (a.hp <= 0) {
+            a.hit = true;
+            explode(a.x, a.y, a.color, a.isBoss ? 28 : 14);
+            const basePoints = a.isBoss ? 50 : 10;
+            const comboBonus = Math.floor(combo/3) * 5;
+            score += basePoints + comboBonus;
+            combo++;
+            spawnFloater(`+${basePoints + comboBonus}`, a.x, a.y - 20, '#ffd700', 1.2);
+            if (combo >= 5) spawnFloater(`🔥 ×${combo}!`, a.x, a.y - 40, '#ff9f1c', 1.0);
+            if (Math.random() < 0.2) spawnPowerup(a.x, a.y);
+            doFlash('#00ffcc');
+            // Vanish all remaining wrong-answer aliens immediately
+            aliens.forEach(other => { if (!other.hit) { other.hit = true; explode(other.x, other.y, '#444', 5); } });
+          } else {
+            spawnFloater(`${a.hp} HP left`, a.x, a.y - 30, '#ff9f1c', 1.0);
+          }
         } else {
+          // Shooting a wrong-answer alien: lose a life
+          a.hit = true;
+          explode(a.x, a.y, '#ff4466', 10);
           combo = 0;
-          lives--;
-          explode(a.x, a.y, '#ff4466', 12);
-          doFlash('#ff4466');
-          if (lives <= 0) endGame();
+          doFlash('#ff0000');
+          triggerShake(10);
+          spawnFloater('✗ WRONG', a.x, a.y - 20, '#ff4466', 1.0);
+          if (shieldActive) { shieldActive = false; spawnFloater('SHIELD BROKEN', a.x, a.y - 20, '#4d96ff', 1.2); }
+          else { lives--; if (lives <= 0) endGame(); }
         }
       }
     });
   });
-  bullets = bullets.filter(b => b.active);
 
+  // Remove dead bullets
+  bullets = bullets.filter(b => !b.hit && b.y > -30 && b.y < H + 30 && b.x > -50 && b.x < W + 50);
+
+  // Alien reaches bottom
+  // Wrong aliens reaching the bottom = lose a life (you let them through)
+  // Correct alien reaching the bottom = no penalty (it just escapes)
   aliens.forEach(a => {
-    if (!a.hit && a.y > H + 40) {
-      if (a.isCorrect) {
-        a.hit = true;
-        combo = 0;
-        lives--;
-        doFlash('#ff4466');
-        aliens.forEach(o => { if (!o.isCorrect) o.hit = true; });
-        if (lives <= 0) { endGame(); return; }
-        setTimeout(() => spawnAlienWave(), 400);
-      } else {
-        a.hit = true;
-      }
+    if (a.hit || a.y <= H + 20) return;
+    a.hit = true;
+    if (!a.isCorrect) {
+      combo = 0;
+      doFlash('#ff0000');
+      triggerShake(6);
+      spawnFloater('✗ GOT THROUGH!', a.x, H - 40, '#ff4466', 1.2);
+      if (shieldActive) { shieldActive = false; spawnFloater('SHIELD BROKEN', W/2, H/2, '#4d96ff', 1.2); }
+      else { lives--; if (lives <= 0) endGame(); }
     }
   });
-  aliens = aliens.filter(a => !a.hit);
 
-  const nextLevel = Math.floor(score / DIFF[selectedDiff].levelThresh) + 1;
-  if (nextLevel > level) { level = nextLevel; }
+  // New wave — only after bottom-check has had a chance to mark aliens hit
+  if (aliens.every(a => a.hit)) {
+    aliens = [];
+    spawnAlienWave();
+  }
 
-  particles.forEach(p => {
-    p.x += p.vx; p.y += p.vy;
-    p.vy += 0.1;
-    p.life -= 0.035;
+  // Meteor movement & ship collision
+  meteors.forEach(m => {
+    if (m.hit) return;
+    m.x += m.vx * speedMult;
+    m.y += m.spd * speedMult;
+    m.rot += m.rotSpd;
+    const dist = Math.hypot(m.x - ship.x, m.y - ship.y);
+    if (dist < m.size + sc.hitbox) {
+      m.hit = true;
+      explode(m.x, m.y, '#ff6600', 18);
+      if (sc.meteorAbsorb) { spawnFloater('ABSORBED!', m.x, m.y - 20, '#6bcb77', 1.2); }
+      else if (shieldActive) { shieldActive = false; spawnFloater('SHIELD BROKEN', m.x, m.y-20, '#4d96ff', 1.2); }
+      else { lives--; doFlash('#ff6600'); triggerShake(8); if (lives <= 0) endGame(); }
+    }
   });
+
+  // Bullet-meteor collision
+  bullets.forEach(b => {
+    if (!b.active) return;
+    meteors.forEach(m => {
+      if (m.hit || b.hit) return;
+      const dist = Math.hypot(b.x - m.x, b.y - m.y);
+      if (dist < m.size + 6) {
+        m.hit = true; if (!b.piercing) b.hit = true;
+        m.flashTime = Date.now();
+        explode(m.x, m.y, '#ff9f1c', 12);
+        score += 5; spawnFloater('+5', m.x, m.y-20, '#ff9f1c', 1.0);
+      }
+    });
+  });
+  meteors = meteors.filter(m => !m.hit && m.y < H + 40);
+
+  // Wall movement
+  walls.forEach(w => {
+    w.y += w.spd * speedMult;
+    const sc2 = SHIPS[selectedShip];
+    if (sc2.wallImmune) return;
+    const shipLeft = ship.x - sc2.hitbox, shipRight = ship.x + sc2.hitbox;
+    const inGap = shipRight > w.gapX && shipLeft < w.gapX + w.gapW;
+    if (!inGap && ship.y > w.y - 4 && ship.y < w.y + w.thickness + 4) {
+      if (shieldActive) { shieldActive = false; spawnFloater('SHIELD BROKEN', W/2, w.y - 20, '#4d96ff', 1.2); }
+      else { lives--; doFlash('#00ccff'); triggerShake(7); if (lives <= 0) endGame(); }
+    }
+  });
+  walls = walls.filter(w => !w.hit && w.y < H + 20);
+
+  // Power-up collection
+  powerups.forEach(p => {
+    p.x += p.vx * speedMult; p.y += p.vy * speedMult;
+    p.wobble += 0.06; p.life -= 0.003;
+    if (p.hit) return;
+    const dist = Math.hypot(ship.x - p.x, ship.y - p.y);
+    if (dist < 28) {
+      p.hit = true;
+      spawnFloater(p.label, p.x, p.y - 20, p.color, 1.6);
+      explode(p.x, p.y, p.color, 10);
+      if (p.type === 'shield') { if (!SHIPS[selectedShip].noShieldDrop) shieldActive = true; else spawnFloater('GHOST: no shield', p.x, p.y-20, '#c77dff', 1.2); }
+      if (p.type === 'slowmo') { slowmoActive = true; slowmoEndTime = Date.now() + 3000; }
+      if (p.type === 'heart')  lives = Math.min(lives + 1, DIFF[selectedDiff].lives + 1);
+    }
+  });
+  powerups = powerups.filter(p => !p.hit && p.life > 0 && p.y < H + 40);
+
+  // Floater decay
+  floaters.forEach(f => { f.y += f.vy; f.life -= f.decay; });
+  floaters = floaters.filter(f => f.life > 0);
+
+  // Level up
+  const nextLevel = Math.floor(score / DIFF[selectedDiff].levelThresh) + 1;
+  if (nextLevel > level) {
+    level = nextLevel;
+    spawnFloater(`⬆ LEVEL ${level}!`, W/2, H/2 - 80, '#ffd700', 1.8);
+  }
+
+  // Particles
+  particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life -= 0.035; });
   particles = particles.filter(p => p.life > 0);
 }
 
@@ -700,39 +1776,53 @@ function drawParticles() {
   particles.forEach(p => {
     ctx.globalAlpha = p.life;
     ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2); ctx.fill();
   });
   ctx.globalAlpha = 1;
 }
 
-// ─── LOOP ───────────────────────────────────────────────────────────────────────
+// ─── LOOP ─────────────────────────────────────────────────────────────────────
 let lastTime = 0;
 function loop(ts) {
   const dt = ts - lastTime; lastTime = ts;
   if (state === 'playing') {
     ctx.clearRect(0,0,W,H);
+    const nowShake = Date.now();
+    const shaking = nowShake < shakeTime;
+    if (shaking) {
+      const mag = shakeMag * ((shakeTime - nowShake) / 300);
+      ctx.save();
+      ctx.translate((Math.random()-0.5)*mag, (Math.random()-0.5)*mag);
+    }
     drawStars();
     drawShip();
+    walls.forEach(drawWall);
+    meteors.forEach(drawMeteor);
+    powerups.forEach(drawPowerup);
     aliens.forEach(drawAlien);
     bullets.forEach(drawBullet);
     drawParticles();
+    drawFloaters();
     drawHUD();
+    if (shaking) ctx.restore();
     update(dt);
   }
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 
-// ─── GAME CONTROL ───────────────────────────────────────────────────────────────
+// ─── GAME CONTROL ─────────────────────────────────────────────────────────────
 function startGame() {
   const cfg = DIFF[selectedDiff];
-  score = 0; lives = cfg.lives; level = 1; combo = 0;
-  aliens = []; bullets = []; particles = [];
-  buildPool();
-  initShip();
-  spawnAlienWave();
+  const sc  = SHIPS[selectedShip];
+  score = 0; level = 1; combo = 0;
+  lives = selectedShip === 'ghost' ? 1 : Math.max(1, cfg.lives + sc.lifeBonus);
+  aliens = []; bullets = []; particles = []; meteors = [];
+  powerups = []; floaters = []; walls = [];
+  meteorTimer = 0; wallTimer = 0; lastFireTime = 0;
+  laserCooldownActive = false; shieldActive = false; slowmoActive = false;
+  shakeTime = 0; shakeMag = 0;
+  buildPool(); initShip(); spawnAlienWave();
   state = 'playing';
   document.getElementById('menu-screen').classList.add('hidden');
   document.getElementById('gameover-screen').classList.add('hidden');
@@ -740,18 +1830,18 @@ function startGame() {
 
 function endGame() {
   state = 'gameover';
+  meteorWarn.style.display = 'none'; wallWarn.style.display = 'none';
   highScore    = parseInt(localStorage.getItem(HS_KEY(selectedDiff)) || '0');
   scoreHistory = JSON.parse(localStorage.getItem(SH_KEY(selectedDiff)) || '[]');
   const isNewHS = score > highScore;
   if (isNewHS) { highScore = score; localStorage.setItem(HS_KEY(selectedDiff), highScore); }
-
-  scoreHistory.unshift({ score, level, date: new Date().toLocaleDateString('en-AU') });
+  scoreHistory.unshift({ score, level, date: new Date().toLocaleDateString('en-AU'), cannon: selectedCannon, ship: selectedShip });
   if (scoreHistory.length > 8) scoreHistory = scoreHistory.slice(0,8);
   localStorage.setItem(SH_KEY(selectedDiff), JSON.stringify(scoreHistory));
-
   document.getElementById('final-score').textContent = `SCORE: ${score}`;
   document.getElementById('final-level').textContent = `Reached Level ${level}`;
   document.getElementById('final-diff').textContent  = DIFF[selectedDiff].label;
+  document.getElementById('final-cannon').textContent = CANNONS[selectedCannon].label;
   document.getElementById('new-hs').style.display = isNewHS ? 'block' : 'none';
   renderHistory('score-history-go');
   document.getElementById('gameover-screen').classList.remove('hidden');
@@ -761,11 +1851,15 @@ function renderHistory(id) {
   const el = document.getElementById(id);
   if (!scoreHistory.length) { el.textContent = ''; return; }
   el.innerHTML = '<span style="color:#aaa">— SCORE HISTORY —</span><br>' +
-    scoreHistory.map((s,i) => `${i+1}. ${s.date} &nbsp; Score: ${s.score} &nbsp; Lv ${s.level}`).join('<br>');
+    scoreHistory.map((s,i) => {
+      const cannonLabel = s.cannon ? ` &nbsp; ${CANNONS[s.cannon] ? CANNONS[s.cannon].label : s.cannon}` : '';
+      return `${i+1}. ${s.date} &nbsp; Score: ${s.score} &nbsp; Lv ${s.level}${cannonLabel}`;
+    }).join('<br>');
 }
 
 function showMenu() {
   state = 'menu';
+  meteorWarn.style.display = 'none'; wallWarn.style.display = 'none';
   highScore    = parseInt(localStorage.getItem(HS_KEY(selectedDiff)) || '0');
   scoreHistory = JSON.parse(localStorage.getItem(SH_KEY(selectedDiff)) || '[]');
   document.getElementById('highscore-display').textContent = `🏆 HIGH SCORE: ${highScore}`;
@@ -782,9 +1876,7 @@ document.getElementById('menu-btn').addEventListener('click', showMenu);
 // Mobile touch
 let touchX = null;
 canvas.addEventListener('touchstart', e => {
-  e.preventDefault();
-  touchX = e.touches[0].clientX;
-  fireBullet();
+  e.preventDefault(); touchX = e.touches[0].clientX; tryFire();
 }, {passive:false});
 canvas.addEventListener('touchmove', e => {
   e.preventDefault();
